@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}TripPlanner - Discover Your Perfect Trip{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="relative gradient-bg overflow-hidden">
+    <div class="absolute inset-0 bg-black/20"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+        <div class="text-center text-white">
+            <h1 class="text-4xl md:text-6xl font-bold mb-6">Discover Your Perfect Trip</h1>
+            <p class="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-8">
+                Explore curated travel packages, plan with AI assistance, and create unforgettable memories.
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="{{ url_for('packages.browse') }}" class="bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition shadow-lg">
+                    Browse Packages
+                </a>
+                <a href="{{ url_for('ai.planner') }}" class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition">
+                    <i data-lucide="sparkles" class="w-5 h-5 inline mr-2"></i>AI Trip Planner
+                </a>
+            </div>
+        </div>
+    </div>
+    <!-- Wave divider -->
+    <div class="absolute bottom-0 w-full">
+        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="#f9fafb"/>
+        </svg>
+    </div>
+</section>
+
+<!-- Categories -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-3">Explore by Category</h2>
+        <p class="text-gray-500">Find the perfect trip for every type of traveler</p>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        {% set categories = [
+            ('adventure', 'mountain', 'Adventure'),
+            ('beach', 'waves', 'Beach'),
+            ('cultural', 'landmark', 'Cultural'),
+            ('wildlife', 'bird', 'Wildlife'),
+            ('honeymoon', 'heart', 'Honeymoon'),
+            ('family', 'users', 'Family'),
+            ('pilgrimage', 'church', 'Pilgrimage')
+        ] %}
+        {% for cat, icon, label in categories %}
+        <a href="{{ url_for('packages.browse', category=cat) }}" class="group flex flex-col items-center p-4 rounded-xl bg-white border border-gray-100 hover:border-primary-200 hover:shadow-md transition">
+            <div class="w-12 h-12 bg-primary-50 rounded-full flex items-center justify-center mb-3 group-hover:bg-primary-100 transition">
+                <i data-lucide="{{ icon }}" class="w-6 h-6 text-primary-500"></i>
+            </div>
+            <span class="text-sm font-medium text-gray-700 group-hover:text-primary-600">{{ label }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Featured Packages -->
+{% if featured %}
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-900">Featured Packages</h2>
+            <p class="text-gray-500 mt-1">Handpicked trips curated for you</p>
+        </div>
+        <a href="{{ url_for('packages.browse', featured='true') }}" class="text-primary-600 hover:text-primary-700 font-medium">View all →</a>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for pkg in featured %}
+            {% include 'components/package_card.html' %}
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- Popular Packages -->
+{% if popular %}
+<section class="bg-white py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-900">Popular Packages</h2>
+                <p class="text-gray-500 mt-1">Most loved by our travelers</p>
+            </div>
+            <a href="{{ url_for('packages.browse', sortBy='rating', sortOrder='desc') }}" class="text-primary-600 hover:text-primary-700 font-medium">View all →</a>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for pkg in popular %}
+                {% include 'components/package_card.html' %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- AI Planner CTA -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="gradient-bg rounded-2xl p-8 md:p-12 text-white text-center">
+        <div class="max-w-2xl mx-auto">
+            <i data-lucide="sparkles" class="w-12 h-12 mx-auto mb-4 opacity-80"></i>
+            <h2 class="text-3xl font-bold mb-4">Plan Your Trip with AI</h2>
+            <p class="text-white/80 mb-8">Let our AI assistant create a personalized day-by-day itinerary based on your preferences, budget, and travel dates.</p>
+            <a href="{{ url_for('ai.planner') }}" class="inline-block bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition shadow-lg">
+                Try AI Planner →
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Stats -->
+<section class="bg-white py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div>
+                <p class="text-3xl font-bold text-primary-600">500+</p>
+                <p class="text-gray-500 mt-1">Travel Packages</p>
+            </div>
+            <div>
+                <p class="text-3xl font-bold text-primary-600">50+</p>
+                <p class="text-gray-500 mt-1">Destinations</p>
+            </div>
+            <div>
+                <p class="text-3xl font-bold text-primary-600">10K+</p>
+                <p class="text-gray-500 mt-1">Happy Travelers</p>
+            </div>
+            <div>
+                <p class="text-3xl font-bold text-primary-600">4.8</p>
+                <p class="text-gray-500 mt-1">Average Rating</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

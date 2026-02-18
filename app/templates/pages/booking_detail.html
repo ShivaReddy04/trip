@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block title %}Booking {{ booking.bookingId }} - TripPlanner{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center text-sm text-gray-500 mb-6">
+        <a href="{{ url_for('bookings.my_bookings') }}" class="hover:text-primary-600">My Bookings</a>
+        <i data-lucide="chevron-right" class="w-4 h-4 mx-2"></i>
+        <span class="text-gray-900">{{ booking.bookingId }}</span>
+    </nav>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Info -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Status Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h1 class="text-xl font-bold text-gray-900">{{ booking.bookingId }}</h1>
+                    <span class="px-3 py-1 rounded-full text-sm font-medium
+                        {% if booking.status == 'confirmed' %}bg-green-100 text-green-800
+                        {% elif booking.status == 'pending' %}bg-yellow-100 text-yellow-800
+                        {% elif booking.status == 'completed' %}bg-blue-100 text-blue-800
+                        {% elif booking.status == 'cancelled' %}bg-red-100 text-red-800
+                        {% endif %}">
+                        {{ booking.status|capitalize }}
+                    </span>
+                </div>
+
+                {% if package %}
+                <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                    {% if package.images %}
+                    <img src="{{ package.images[0].url }}" alt="" class="w-20 h-20 rounded-lg object-cover">
+                    {% endif %}
+                    <div>
+                        <h2 class="font-semibold text-gray-900">{{ package.title }}</h2>
+                        <p class="text-sm text-gray-500">{{ package.duration.days }} Days / {{ package.duration.nights }} Nights</p>
+                        <a href="{{ url_for('packages.detail', slug=package.slug) }}" class="text-sm text-primary-600 hover:text-primary-700">View Package →</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Trip Details -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 class="font-semibold text-gray-900 mb-4">Trip Details</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-500">Travel Date</p>
+                        <p class="font-medium text-gray-900">{{ booking.travelDates.start }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Travelers</p>
+                        <p class="font-medium text-gray-900">{{ booking.travelers|length }} person(s)</p>
+                    </div>
+                </div>
+
+                {% if booking.travelers %}
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Travelers</p>
+                    <div class="space-y-2">
+                        {% for t in booking.travelers %}
+                        <div class="flex items-center text-sm text-gray-600">
+                            <i data-lucide="user" class="w-4 h-4 mr-2 text-gray-400"></i>
+                            {{ t.name }} (Age: {{ t.age }})
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if booking.specialRequests %}
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <p class="text-sm font-medium text-gray-700 mb-1">Special Requests</p>
+                    <p class="text-sm text-gray-600">{{ booking.specialRequests }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Cancel -->
+            {% if booking.status in ('pending', 'confirmed') %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 class="font-semibold text-red-600 mb-3">Cancel Booking</h3>
+                <form method="POST" action="{{ url_for('bookings.cancel', booking_id=booking._id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <textarea name="reason" rows="2" placeholder="Reason for cancellation (optional)"
+                        class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-red-500 outline-none resize-none mb-3"></textarea>
+                    <button type="submit" onclick="return confirm('Are you sure you want to cancel this booking?')"
+                        class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition">
+                        Cancel Booking
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Payment Summary -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-24">
+                <h3 class="font-semibold text-gray-900 mb-4">Payment Summary</h3>
+
+                <div class="space-y-3">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Total Amount</span>
+                        <span class="font-medium">${{ "%.2f"|format(booking.totalAmount) }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Payment Status</span>
+                        <span class="font-medium capitalize {{ 'text-green-600' if booking.payment.status == 'completed' else 'text-yellow-600' }}">
+                            {{ booking.payment.status }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Paid Amount</span>
+                        <span class="font-medium">${{ "%.2f"|format(booking.payment.paidAmount) }}</span>
+                    </div>
+                </div>
+
+                {% if booking.payment.status != 'completed' and booking.status != 'cancelled' %}
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <a href="{{ url_for('bookings.checkout', booking_id=booking._id) }}"
+                        class="block w-full gradient-bg text-white py-2.5 rounded-lg font-semibold hover:opacity-90 transition text-center">
+                        <i data-lucide="credit-card" class="w-4 h-4 inline mr-1"></i>Pay Now
+                    </a>
+                </div>
+                {% endif %}
+
+                {% if booking.status == 'completed' %}
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <a href="{{ url_for('packages.detail', slug=(package.slug if package else '')) }}#reviews"
+                        class="block w-full text-center gradient-bg text-white py-2.5 rounded-lg font-semibold hover:opacity-90 transition">
+                        Write a Review
+                    </a>
+                </div>
+                {% endif %}
+
+                <div class="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400">
+                    <p>Booked on {{ booking.createdAt.strftime('%b %d, %Y') if booking.createdAt else '' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

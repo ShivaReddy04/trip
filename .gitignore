@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+.Python
+env/
+venv/
+.venv/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Upload directories
+uploads/
+temp/
+
+# Docker
+docker/ssl/
+
+# Node
+node_modules/
+
+# Database files
+*.db
+
+# Test scripts
+test_*.py
+
+# Misc
+*.pem
+*.key
+.claude/

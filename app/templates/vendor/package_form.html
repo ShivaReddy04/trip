@@ -1,0 +1,257 @@
+{% extends 'vendor/layout.html' %}
+{% block title %}{{ 'Edit' if package and package._id is defined else 'New' }} Package - TripPlanner{% endblock %}
+
+{% block vendor_content %}
+<h1 class="text-2xl font-bold text-gray-900 mb-6">{{ 'Edit' if package and package._id is defined else 'New' }} Package</h1>
+
+<form method="POST" class="space-y-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Basic Info -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input type="text" name="title" required value="{{ package.title if package else '' }}"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea name="description" rows="4" required
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none">{{ package.description if package else '' }}</textarea>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <select name="category" required class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 outline-none">
+                        {% for cat in categories %}
+                        <option value="{{ cat }}" {{ 'selected' if package and package.category == cat }}>{{ cat|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
+                    <select name="difficulty" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 outline-none">
+                        {% for d in ['easy', 'moderate', 'challenging'] %}
+                        <option value="{{ d }}" {{ 'selected' if package and package.difficulty == d }}>{{ d|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select name="status" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 outline-none">
+                        {% for s in ['draft', 'published'] %}
+                        <option value="{{ s }}" {{ 'selected' if package and package.status == s }}>{{ s|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Highlights (comma-separated)</label>
+                <input type="text" name="highlights" value="{{ package.highlights|join(', ') if package and package.highlights else '' }}"
+                    placeholder="e.g. Guided tours, Local cuisine, Photography spots"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tags (comma-separated)</label>
+                <input type="text" name="tags" value="{{ package.tags|join(', ') if package and package.tags else '' }}"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+        </div>
+    </div>
+
+    <!-- Pricing & Duration -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Pricing & Duration</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Base Price ($)</label>
+                <input type="number" name="basePrice" required min="0" step="0.01"
+                    value="{{ package.pricing.basePrice if package and package.pricing else '' }}"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+                <select name="currency" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 outline-none">
+                    {% for c in ['USD', 'EUR', 'GBP', 'INR'] %}
+                    <option value="{{ c }}" {{ 'selected' if package and package.pricing and package.pricing.currency == c }}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Days</label>
+                <input type="number" name="days" required min="1"
+                    value="{{ package.duration.days if package and package.duration else 1 }}"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nights</label>
+                <input type="number" name="nights" required min="0"
+                    value="{{ package.duration.nights if package and package.duration else 0 }}"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+        </div>
+        <div class="mt-4 flex items-center">
+            <input type="checkbox" name="perPersonPrice" id="perPerson"
+                {{ 'checked' if not package or (package.pricing and package.pricing.perPersonPrice) }}
+                class="rounded border-gray-300 text-primary-500 focus:ring-primary-500">
+            <label for="perPerson" class="ml-2 text-sm text-gray-700">Price is per person</label>
+        </div>
+    </div>
+
+    <!-- Availability -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Availability</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <input type="date" name="startDate" required
+                    value="{{ package.availability.startDate[:10] if package and package.availability and package.availability.startDate is string else '' }}"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                <input type="date" name="endDate" required
+                    value="{{ package.availability.endDate[:10] if package and package.availability and package.availability.endDate is string else '' }}"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Min Group Size</label>
+                <input type="number" name="minGroupSize" min="1" value="{{ package.availability.minGroupSize if package and package.availability else 1 }}"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Max Group Size</label>
+                <input type="number" name="maxGroupSize" min="1" value="{{ package.availability.maxGroupSize if package and package.availability else 10 }}"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+        </div>
+    </div>
+
+    <!-- Destinations -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Destinations</h2>
+        <div id="destinations-list" class="space-y-3">
+            {% if package and package.destinations %}
+                {% for dest in package.destinations %}
+                <div class="flex items-center space-x-3">
+                    <input type="text" name="dest_name" value="{{ dest.name }}" placeholder="Destination name"
+                        class="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                    <input type="number" name="dest_duration" value="{{ dest.duration }}" placeholder="Days" min="1"
+                        class="w-24 px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="flex items-center space-x-3">
+                <input type="text" name="dest_name" placeholder="Destination name"
+                    class="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                <input type="number" name="dest_duration" placeholder="Days" min="1" value="1"
+                    class="w-24 px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            {% endif %}
+        </div>
+        <button type="button" onclick="addDestination()" class="mt-3 text-sm text-primary-600 hover:text-primary-700 font-medium">
+            + Add Destination
+        </button>
+    </div>
+
+    <!-- Inclusions / Exclusions -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Inclusions & Exclusions</h2>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Inclusions (comma-separated)</label>
+                <textarea name="inclusions" rows="2"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none resize-none">{{ package.inclusions|join(', ') if package and package.inclusions else '' }}</textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Exclusions (comma-separated)</label>
+                <textarea name="exclusions" rows="2"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none resize-none">{{ package.exclusions|join(', ') if package and package.exclusions else '' }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Images -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Images</h2>
+        <input type="hidden" name="images_json" id="images-json" value='{{ package.images|tojson if package and package.images else "[]" }}'>
+        <div id="image-previews" class="flex flex-wrap gap-3 mb-4">
+            {% if package and package.images %}
+                {% for img in package.images %}
+                <div class="relative">
+                    <img src="{{ img.url }}" class="w-24 h-24 rounded-lg object-cover">
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        <label class="inline-block cursor-pointer gradient-bg text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">
+            <i data-lucide="upload" class="w-4 h-4 inline mr-1"></i>Upload Images
+            <input type="file" accept="image/*" multiple class="hidden" onchange="uploadPackageImages(this)">
+        </label>
+    </div>
+
+    <!-- Submit -->
+    <div class="flex items-center justify-end space-x-4">
+        <a href="{{ url_for('vendor.packages') }}" class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">Cancel</a>
+        <button type="submit" class="gradient-bg text-white px-8 py-2.5 rounded-lg font-semibold hover:opacity-90 transition">
+            {{ 'Update' if package and package._id is defined else 'Create' }} Package
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function addDestination() {
+    const list = document.getElementById('destinations-list');
+    const div = document.createElement('div');
+    div.className = 'flex items-center space-x-3';
+    div.innerHTML = `
+        <input type="text" name="dest_name" placeholder="Destination name"
+            class="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        <input type="number" name="dest_duration" placeholder="Days" min="1" value="1"
+            class="w-24 px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700">
+            <i data-lucide="x" class="w-4 h-4"></i>
+        </button>`;
+    list.appendChild(div);
+    lucide.createIcons();
+}
+
+async function uploadPackageImages(input) {
+    const files = input.files;
+    if (!files.length) return;
+
+    const formData = new FormData();
+    for (const f of files) formData.append('images', f);
+
+    try {
+        const res = await fetch('/api/uploads/images', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+        });
+        const data = await res.json();
+        if (data.images) {
+            const existing = JSON.parse(document.getElementById('images-json').value || '[]');
+            const newImages = data.images.map(img => ({ url: img.url, alt: '', isPrimary: existing.length === 0 }));
+            const all = [...existing, ...newImages];
+            document.getElementById('images-json').value = JSON.stringify(all);
+
+            const previews = document.getElementById('image-previews');
+            data.images.forEach(img => {
+                const div = document.createElement('div');
+                div.className = 'relative';
+                div.innerHTML = `<img src="${img.url}" class="w-24 h-24 rounded-lg object-cover">`;
+                previews.appendChild(div);
+            });
+            showToast('Images uploaded!', 'success');
+        }
+    } catch (err) {
+        showToast('Upload failed', 'error');
+    }
+}
+</script>
+{% endblock %}

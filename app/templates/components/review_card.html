@@ -1,0 +1,44 @@
+{# Usage: {% include 'components/review_card.html' %} with review, review_user variables #}
+<div class="bg-white rounded-lg border border-gray-100 p-4 mb-4">
+    <div class="flex items-start justify-between mb-3">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-r from-primary-500 to-accent-500 rounded-full flex items-center justify-center">
+                <span class="text-white text-sm font-medium">
+                    {% if review_user %}{{ review_user.profile.firstName[0] }}{{ review_user.profile.lastName[0] }}{% else %}?{% endif %}
+                </span>
+            </div>
+            <div>
+                <p class="font-medium text-gray-900">
+                    {% if review_user %}{{ review_user.profile.firstName }} {{ review_user.profile.lastName }}{% else %}Anonymous{% endif %}
+                </p>
+                <p class="text-xs text-gray-500">{{ review.createdAt.strftime('%b %d, %Y') if review.createdAt else '' }}</p>
+            </div>
+        </div>
+        {% include 'components/star_rating.html' with context %}
+    </div>
+
+    <h4 class="font-semibold text-gray-900 mb-1">{{ review.title }}</h4>
+    <p class="text-gray-600 text-sm mb-3">{{ review.content }}</p>
+
+    {% if review.images %}
+    <div class="flex space-x-2 mb-3">
+        {% for img in review.images %}
+        <img src="{{ img }}" alt="Review photo" class="w-16 h-16 rounded-lg object-cover">
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if review.vendorReply %}
+    <div class="bg-gray-50 rounded-lg p-3 mt-3 border-l-4 border-primary-500">
+        <p class="text-xs font-medium text-primary-600 mb-1">Vendor Reply</p>
+        <p class="text-sm text-gray-600">{{ review.vendorReply.content }}</p>
+    </div>
+    {% endif %}
+
+    <div class="flex items-center mt-3 pt-3 border-t border-gray-100">
+        <button onclick="markHelpful('{{ review._id }}')" class="text-sm text-gray-500 hover:text-primary-600 flex items-center transition">
+            <i data-lucide="thumbs-up" class="w-4 h-4 mr-1"></i>
+            Helpful (<span id="helpful-{{ review._id }}">{{ review.helpfulCount }}</span>)
+        </button>
+    </div>
+</div>

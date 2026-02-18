@@ -1,0 +1,26 @@
+{# Usage: {% include 'components/pagination.html' with context %} with page, total_pages, endpoint #}
+{% if total_pages > 1 %}
+<nav class="flex items-center justify-center space-x-2 mt-8">
+    {% if page > 1 %}
+    <a href="{{ url_for(endpoint, page=page-1, **kwargs) }}" class="px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition">
+        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+    </a>
+    {% endif %}
+
+    {% for p in range(1, total_pages + 1) %}
+        {% if p == page %}
+        <span class="px-3 py-2 rounded-lg bg-gradient-to-r from-primary-500 to-accent-500 text-white font-medium">{{ p }}</span>
+        {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+        <a href="{{ url_for(endpoint, page=p, **kwargs) }}" class="px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition">{{ p }}</a>
+        {% elif p == page - 3 or p == page + 3 %}
+        <span class="px-2 text-gray-400">...</span>
+        {% endif %}
+    {% endfor %}
+
+    {% if page < total_pages %}
+    <a href="{{ url_for(endpoint, page=page+1, **kwargs) }}" class="px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition">
+        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </a>
+    {% endif %}
+</nav>
+{% endif %}

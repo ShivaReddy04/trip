@@ -1,0 +1,84 @@
+{% extends 'vendor/layout.html' %}
+{% block title %}Manage Bookings - TripPlanner{% endblock %}
+
+{% block vendor_content %}
+<h1 class="text-2xl font-bold text-gray-900 mb-6">Manage Bookings</h1>
+
+<!-- Status Tabs -->
+<div class="flex space-x-2 mb-6 overflow-x-auto">
+    {% set statuses = [('', 'All'), ('pending', 'Pending'), ('confirmed', 'Confirmed'), ('completed', 'Completed'), ('cancelled', 'Cancelled')] %}
+    {% for val, label in statuses %}
+    <a href="{{ url_for('vendor.bookings', status=val) }}"
+        class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition
+        {{ 'gradient-bg text-white' if current_status == val else 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50' }}">
+        {{ label }}
+    </a>
+    {% endfor %}
+</div>
+
+{% if bookings %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-100">
+            <tr>
+                <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Booking</th>
+                <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Customer</th>
+                <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Package</th>
+                <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Amount</th>
+                <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {% for b in bookings %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4">
+                    <p class="text-sm font-mono text-gray-900">{{ b.bookingId }}</p>
+                    <p class="text-xs text-gray-500">{{ b.travelers|length }} travelers</p>
+                </td>
+                <td class="px-6 py-4 text-sm">
+                    {% if b._user %}
+                    {{ b._user.profile.firstName }} {{ b._user.profile.lastName }}
+                    <p class="text-xs text-gray-400">{{ b._user.email }}</p>
+                    {% else %}—{% endif %}
+                </td>
+                <td class="px-6 py-4 text-sm">{{ b._package.title if b._package else '—' }}</td>
+                <td class="px-6 py-4 text-sm font-medium">${{ "%.0f"|format(b.totalAmount) }}</td>
+                <td class="px-6 py-4">
+                    <span class="px-2 py-1 rounded-full text-xs font-medium
+                        {% if b.status == 'confirmed' %}bg-green-100 text-green-700
+                        {% elif b.status == 'pending' %}bg-yellow-100 text-yellow-700
+                        {% elif b.status == 'completed' %}bg-blue-100 text-blue-700
+                        {% else %}bg-red-100 text-red-700{% endif %}">{{ b.status|capitalize }}</span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end space-x-2">
+                        {% if b.status == 'pending' %}
+                        <form method="POST" action="{{ url_for('vendor.confirm', booking_id=b._id) }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="text-sm text-green-600 hover:text-green-700 font-medium">Confirm</button>
+                        </form>
+                        {% elif b.status == 'confirmed' %}
+                        <form method="POST" action="{{ url_for('vendor.complete', booking_id=b._id) }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Complete</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% set kwargs = {'status': current_status} if current_status else {} %}
+{% include 'components/pagination.html' %}
+{% else %}
+<div class="text-center py-16 bg-white rounded-xl border border-gray-100">
+    <i data-lucide="calendar" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
+    <h3 class="text-lg font-medium text-gray-900 mb-2">No bookings found</h3>
+    <p class="text-gray-500">Bookings will appear here when travelers book your packages.</p>
+</div>
+{% endif %}
+{% endblock %}

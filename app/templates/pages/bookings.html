@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}My Bookings - TripPlanner{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-2xl font-bold text-gray-900 mb-6">My Bookings</h1>
+
+    <!-- Status Tabs -->
+    <div class="flex space-x-2 mb-6 overflow-x-auto">
+        {% set statuses = [('', 'All'), ('pending', 'Pending'), ('confirmed', 'Confirmed'), ('completed', 'Completed'), ('cancelled', 'Cancelled')] %}
+        {% for val, label in statuses %}
+        <a href="{{ url_for('bookings.my_bookings', status=val) }}"
+            class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition
+            {{ 'gradient-bg text-white' if current_status == val else 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50' }}">
+            {{ label }}
+        </a>
+        {% endfor %}
+    </div>
+
+    {% if bookings %}
+    <div class="space-y-4">
+        {% for booking in bookings %}
+            {% set booking_package = booking_packages.get(booking.packageId|string) %}
+            {% include 'components/booking_card.html' %}
+        {% endfor %}
+    </div>
+
+    {% set kwargs = {'status': current_status} if current_status else {} %}
+    {% include 'components/pagination.html' %}
+    {% else %}
+    <div class="text-center py-16 bg-white rounded-xl border border-gray-100">
+        <i data-lucide="briefcase" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No bookings found</h3>
+        <p class="text-gray-500 mb-4">You haven't made any bookings yet.</p>
+        <a href="{{ url_for('packages.browse') }}" class="gradient-bg text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition inline-block">
+            Browse Packages
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

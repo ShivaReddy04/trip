@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}TripPlanner{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50:'#f0f1fe', 100:'#e0e2fc', 200:'#c7cafa', 300:'#a5a8f5', 400:'#8b85ef', 500:'#7b6be5', 600:'#6c4fd8', 700:'#5c3fbe', 800:'#4b359a', 900:'#40317b' },
+                        accent: { 500:'#764ba2', 600:'#6a4093' },
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-gray-50 flex flex-col">
+    {% include 'components/header.html' %}
+
+    {% include 'components/flash_messages.html' %}
+
+    <main class="flex-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include 'components/footer.html' %}
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>lucide.createIcons();</script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

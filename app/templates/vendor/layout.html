@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex flex-col md:flex-row gap-8">
+        <!-- Sidebar -->
+        <aside class="md:w-56 shrink-0">
+            <nav class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sticky top-24 space-y-1">
+                <a href="{{ url_for('vendor.dashboard') }}"
+                    class="flex items-center px-3 py-2 rounded-lg text-sm font-medium {{ 'gradient-bg text-white' if request.endpoint == 'vendor.dashboard' else 'text-gray-600 hover:bg-gray-50' }}">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4 mr-2"></i>Dashboard
+                </a>
+                <a href="{{ url_for('vendor.packages') }}"
+                    class="flex items-center px-3 py-2 rounded-lg text-sm font-medium {{ 'gradient-bg text-white' if 'package' in request.endpoint else 'text-gray-600 hover:bg-gray-50' }}">
+                    <i data-lucide="package" class="w-4 h-4 mr-2"></i>Packages
+                </a>
+                <a href="{{ url_for('vendor.bookings') }}"
+                    class="flex items-center px-3 py-2 rounded-lg text-sm font-medium {{ 'gradient-bg text-white' if request.endpoint == 'vendor.bookings' else 'text-gray-600 hover:bg-gray-50' }}">
+                    <i data-lucide="calendar-check" class="w-4 h-4 mr-2"></i>Bookings
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 min-w-0">
+            {% block vendor_content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}

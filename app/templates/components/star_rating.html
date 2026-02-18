@@ -1,0 +1,10 @@
+{# Usage: {% include 'components/star_rating.html' %} with review.rating #}
+<div class="flex items-center">
+    {% for i in range(1, 6) %}
+        {% if i <= (review.rating if review is defined else 0) %}
+        <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-yellow-400"></i>
+        {% else %}
+        <i data-lucide="star" class="w-4 h-4 text-gray-300"></i>
+        {% endif %}
+    {% endfor %}
+</div>

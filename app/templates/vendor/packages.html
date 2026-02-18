@@ -1,0 +1,93 @@
+{% extends 'vendor/layout.html' %}
+{% block title %}My Packages - TripPlanner{% endblock %}
+
+{% block vendor_content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">My Packages</h1>
+    <a href="{{ url_for('vendor.new_package') }}" class="gradient-bg text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition flex items-center">
+        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>New Package
+    </a>
+</div>
+
+{% if packages %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-100">
+            <tr>
+                <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Package</th>
+                <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Price</th>
+                <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Rating</th>
+                <th class="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {% for pkg in packages %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4">
+                    <div class="flex items-center space-x-3">
+                        {% if pkg.images %}
+                        <img src="{{ pkg.images[0].url }}" class="w-12 h-12 rounded-lg object-cover">
+                        {% else %}
+                        <div class="w-12 h-12 rounded-lg bg-primary-50 flex items-center justify-center">
+                            <i data-lucide="image" class="w-5 h-5 text-primary-300"></i>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <p class="font-medium text-gray-900 text-sm">{{ pkg.title }}</p>
+                            <p class="text-xs text-gray-500">{{ pkg.category|capitalize }} · {{ pkg.duration.days }}D/{{ pkg.duration.nights }}N</p>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-sm">${{ "%.0f"|format(pkg.pricing.basePrice) }}</td>
+                <td class="px-6 py-4">
+                    <span class="px-2 py-1 rounded-full text-xs font-medium
+                        {% if pkg.status == 'published' %}bg-green-100 text-green-700
+                        {% elif pkg.status == 'draft' %}bg-gray-100 text-gray-600
+                        {% else %}bg-yellow-100 text-yellow-700{% endif %}">{{ pkg.status|capitalize }}</span>
+                </td>
+                <td class="px-6 py-4 text-sm">
+                    {% if pkg.rating and pkg.rating.count > 0 %}
+                    <span class="flex items-center"><i data-lucide="star" class="w-3 h-3 text-yellow-400 fill-yellow-400 mr-1"></i>{{ pkg.rating.average }} ({{ pkg.rating.count }})</span>
+                    {% else %}—{% endif %}
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end space-x-2">
+                        <a href="{{ url_for('vendor.edit_package', package_id=pkg._id) }}" class="text-sm text-primary-600 hover:text-primary-700">Edit</a>
+                        {% if pkg.status == 'draft' %}
+                        <form method="POST" action="{{ url_for('vendor.change_status', package_id=pkg._id) }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="status" value="published">
+                            <button type="submit" class="text-sm text-green-600 hover:text-green-700">Publish</button>
+                        </form>
+                        {% elif pkg.status == 'published' %}
+                        <form method="POST" action="{{ url_for('vendor.change_status', package_id=pkg._id) }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="status" value="archived">
+                            <button type="submit" class="text-sm text-yellow-600 hover:text-yellow-700">Archive</button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('vendor.remove_package', package_id=pkg._id) }}" class="inline" onsubmit="return confirm('Delete this package?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="text-sm text-red-600 hover:text-red-700">Delete</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% include 'components/pagination.html' %}
+{% else %}
+<div class="text-center py-16 bg-white rounded-xl border border-gray-100">
+    <i data-lucide="package" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
+    <h3 class="text-lg font-medium text-gray-900 mb-2">No packages yet</h3>
+    <p class="text-gray-500 mb-4">Create your first travel package to start receiving bookings.</p>
+    <a href="{{ url_for('vendor.new_package') }}" class="gradient-bg text-white px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition inline-block">
+        Create Package
+    </a>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% block title %}{{ package.title }} - TripPlanner{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center text-sm text-gray-500 mb-6">
+        <a href="{{ url_for('packages.browse') }}" class="hover:text-primary-600">Packages</a>
+        <i data-lucide="chevron-right" class="w-4 h-4 mx-2"></i>
+        <span class="text-gray-900">{{ package.title }}</span>
+    </nav>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Image Gallery -->
+            <div class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
+                {% if package.images and package.images|length > 0 %}
+                <div class="relative">
+                    <img id="main-image" src="{{ package.images[0].url }}" alt="{{ package.images[0].get('alt', package.title) }}"
+                        class="w-full h-[400px] object-cover">
+                    {% if package.featured %}
+                    <span class="absolute top-4 left-4 bg-yellow-400 text-yellow-900 text-sm font-bold px-3 py-1 rounded-full">Featured</span>
+                    {% endif %}
+                </div>
+                {% if package.images|length > 1 %}
+                <div class="flex gap-2 p-3 overflow-x-auto">
+                    {% for img in package.images %}
+                    <img src="{{ img.url }}" alt="{{ img.get('alt', '') }}"
+                        onclick="document.getElementById('main-image').src='{{ img.url }}'"
+                        class="gallery-thumb rounded-lg object-cover {{ 'active' if loop.first }}">
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="h-[400px] bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center">
+                    <i data-lucide="image" class="w-16 h-16 text-primary-300"></i>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Title & Info -->
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="text-sm font-medium text-primary-600 bg-primary-50 px-3 py-1 rounded-full capitalize">{{ package.category }}</span>
+                    <span class="text-sm text-gray-500 flex items-center"><i data-lucide="clock" class="w-4 h-4 mr-1"></i>{{ package.duration.days }} Days / {{ package.duration.nights }} Nights</span>
+                    <span class="text-sm text-gray-500 flex items-center capitalize"><i data-lucide="gauge" class="w-4 h-4 mr-1"></i>{{ package.difficulty }}</span>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-3">{{ package.title }}</h1>
+
+                {% if package.destinations %}
+                <p class="text-gray-500 flex items-center mb-4">
+                    <i data-lucide="map-pin" class="w-4 h-4 mr-2"></i>
+                    {{ package.destinations|map(attribute='name')|list|join(' → ') }}
+                </p>
+                {% endif %}
+
+                {% if package.rating and package.rating.count > 0 %}
+                <div class="flex items-center mb-4">
+                    {% for i in range(1, 6) %}
+                        {% if i <= package.rating.average|round %}
+                        <i data-lucide="star" class="w-5 h-5 text-yellow-400 fill-yellow-400"></i>
+                        {% else %}
+                        <i data-lucide="star" class="w-5 h-5 text-gray-300"></i>
+                        {% endif %}
+                    {% endfor %}
+                    <span class="ml-2 text-sm font-medium text-gray-700">{{ package.rating.average }} ({{ package.rating.count }} reviews)</span>
+                </div>
+                {% endif %}
+
+                <p class="text-gray-600 leading-relaxed">{{ package.description }}</p>
+            </div>
+
+            <!-- Highlights -->
+            {% if package.highlights %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Highlights</h2>
+                <ul class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% for h in package.highlights %}
+                    <li class="flex items-start">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-green-500 mr-2 shrink-0 mt-0.5"></i>
+                        <span class="text-gray-600">{{ h }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Itinerary -->
+            {% if package.itinerary %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6">Day-by-Day Itinerary</h2>
+                <div class="space-y-6">
+                    {% for day in package.itinerary %}
+                    <div class="relative pl-8 pb-6 {{ '' if loop.last else 'border-l-2 border-primary-200' }}">
+                        <div class="absolute left-0 top-0 -translate-x-1/2 w-6 h-6 rounded-full gradient-bg flex items-center justify-center">
+                            <span class="text-white text-xs font-bold">{{ day.day }}</span>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-1">Day {{ day.day }}: {{ day.title }}</h3>
+                        <p class="text-gray-600 text-sm mb-3">{{ day.description }}</p>
+                        {% if day.activities %}
+                        <ul class="space-y-1 mb-3">
+                            {% for act in day.activities %}
+                            <li class="text-sm text-gray-500 flex items-center">
+                                <i data-lucide="chevron-right" class="w-3 h-3 mr-1 text-primary-400"></i>{{ act }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                        {% if day.meals %}
+                        <div class="flex gap-2">
+                            {% if day.meals.breakfast %}<span class="text-xs bg-orange-50 text-orange-600 px-2 py-1 rounded-full">Breakfast</span>{% endif %}
+                            {% if day.meals.lunch %}<span class="text-xs bg-orange-50 text-orange-600 px-2 py-1 rounded-full">Lunch</span>{% endif %}
+                            {% if day.meals.dinner %}<span class="text-xs bg-orange-50 text-orange-600 px-2 py-1 rounded-full">Dinner</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Inclusions / Exclusions -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% if package.inclusions %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="font-semibold text-gray-900 mb-3 flex items-center"><i data-lucide="check" class="w-5 h-5 text-green-500 mr-2"></i>Inclusions</h3>
+                    <ul class="space-y-2">
+                        {% for inc in package.inclusions %}
+                        <li class="text-sm text-gray-600 flex items-start"><i data-lucide="plus" class="w-4 h-4 text-green-400 mr-2 shrink-0 mt-0.5"></i>{{ inc }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                {% if package.exclusions %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="font-semibold text-gray-900 mb-3 flex items-center"><i data-lucide="x" class="w-5 h-5 text-red-500 mr-2"></i>Exclusions</h3>
+                    <ul class="space-y-2">
+                        {% for exc in package.exclusions %}
+                        <li class="text-sm text-gray-600 flex items-start"><i data-lucide="minus" class="w-4 h-4 text-red-400 mr-2 shrink-0 mt-0.5"></i>{{ exc }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Reviews Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6" id="reviews">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold text-gray-900">Reviews</h2>
+                    {% if rating_summary %}
+                    <div class="flex items-center">
+                        <span class="text-3xl font-bold text-gray-900 mr-2">{{ rating_summary.average }}</span>
+                        <div>
+                            <div class="flex">
+                                {% for i in range(1, 6) %}
+                                    {% if i <= rating_summary.average|round %}
+                                    <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-yellow-400"></i>
+                                    {% else %}
+                                    <i data-lucide="star" class="w-4 h-4 text-gray-300"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <p class="text-xs text-gray-500">{{ rating_summary.total }} reviews</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Rating Distribution -->
+                {% if rating_summary and rating_summary.total > 0 %}
+                <div class="mb-6 space-y-1">
+                    {% for star in range(5, 0, -1) %}
+                    <div class="flex items-center text-sm">
+                        <span class="w-8 text-gray-600">{{ star }}★</span>
+                        <div class="flex-1 mx-3 bg-gray-100 rounded-full h-2">
+                            <div class="bg-yellow-400 h-2 rounded-full" style="width: {{ (rating_summary.distribution[star] / rating_summary.total * 100) if rating_summary.total > 0 else 0 }}%"></div>
+                        </div>
+                        <span class="w-8 text-gray-500 text-right">{{ rating_summary.distribution[star] }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Review List -->
+                <div id="reviews-list">
+                    {% for review in reviews %}
+                        {% set review_user = review_users.get(review.userId|string) %}
+                        {% include 'components/review_card.html' %}
+                    {% endfor %}
+                </div>
+
+                {% if not reviews %}
+                <p class="text-center text-gray-500 py-8">No reviews yet. Be the first to review!</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Booking Sidebar -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-24">
+                <div class="mb-4">
+                    <span class="text-3xl font-bold text-gray-900">${{ "%.0f"|format(package.pricing.basePrice) }}</span>
+                    {% if package.pricing.perPersonPrice %}<span class="text-gray-500">/person</span>{% endif %}
+                </div>
+
+                {% if vendor %}
+                <div class="flex items-center mb-4 pb-4 border-b border-gray-100">
+                    <div class="w-8 h-8 gradient-bg rounded-full flex items-center justify-center mr-2">
+                        <span class="text-white text-xs font-medium">{{ vendor.profile.firstName[0] }}</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">{{ vendor.vendor.companyName if vendor.vendor else vendor.profile.firstName }}</p>
+                        {% if vendor.vendor and vendor.vendor.verified %}
+                        <span class="text-xs text-green-600 flex items-center"><i data-lucide="badge-check" class="w-3 h-3 mr-1"></i>Verified</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <form action="{{ url_for('bookings.create') }}" method="POST" id="booking-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="packageId" value="{{ package._id }}">
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Travel Date</label>
+                            <input type="date" name="startDate" required
+                                min="{{ package.availability.startDate[:10] if package.availability.startDate is string else package.availability.startDate.strftime('%Y-%m-%d') if package.availability.startDate else '' }}"
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Number of Travelers</label>
+                            <input type="number" name="travelers" value="1" min="{{ package.availability.minGroupSize }}" max="{{ package.availability.maxGroupSize }}" required
+                                id="traveler-count"
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                            <p class="text-xs text-gray-400 mt-1">Min {{ package.availability.minGroupSize }}, Max {{ package.availability.maxGroupSize }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
+                            <textarea name="specialRequests" rows="2" placeholder="Any special requirements..."
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none resize-none"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Price Summary -->
+                    <div class="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-500">Base price × <span id="count-display">1</span></span>
+                            <span id="subtotal">${{ "%.2f"|format(package.pricing.basePrice) }}</span>
+                        </div>
+                        <div class="flex justify-between font-semibold text-lg pt-2 border-t border-gray-100">
+                            <span>Total</span>
+                            <span id="total-price">${{ "%.2f"|format(package.pricing.basePrice) }}</span>
+                        </div>
+                    </div>
+
+                    {% if current_user_id %}
+                    <button type="submit" class="w-full mt-4 gradient-bg text-white py-3 rounded-lg font-semibold hover:opacity-90 transition">
+                        Book Now
+                    </button>
+                    {% else %}
+                    <a href="{{ url_for('auth.login', next=request.url) }}" class="block w-full mt-4 gradient-bg text-white py-3 rounded-lg font-semibold text-center hover:opacity-90 transition">
+                        Login to Book
+                    </a>
+                    {% endif %}
+                </form>
+
+                {% if package.groupDiscounts or package.pricing.groupDiscounts %}
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <p class="text-xs font-medium text-gray-600 mb-2">Group Discounts:</p>
+                    {% for disc in package.pricing.groupDiscounts %}
+                    <p class="text-xs text-gray-500">{{ disc.minSize }}+ travelers: {{ disc.discount }}% off</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/booking.js') }}"></script>
+<script src="{{ url_for('static', filename='js/reviews.js') }}"></script>
+<script>
+    initBookingCalc({{ package.pricing.basePrice }}, {{ 'true' if package.pricing.perPersonPrice else 'false' }});
+</script>
+{% endblock %}

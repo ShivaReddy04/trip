@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Payment Successful - TripPlanner{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <!-- Progress Steps -->
+    <div class="flex items-center justify-center mb-10">
+        <div class="flex items-center">
+            <div class="flex items-center justify-center w-8 h-8 rounded-full bg-green-500 text-white text-sm font-bold">
+                <i data-lucide="check" class="w-4 h-4"></i>
+            </div>
+            <span class="ml-2 text-sm font-medium text-green-600">Booking</span>
+        </div>
+        <div class="w-16 h-0.5 bg-green-500 mx-3"></div>
+        <div class="flex items-center">
+            <div class="flex items-center justify-center w-8 h-8 rounded-full bg-green-500 text-white text-sm font-bold">
+                <i data-lucide="check" class="w-4 h-4"></i>
+            </div>
+            <span class="ml-2 text-sm font-medium text-green-600">Payment</span>
+        </div>
+        <div class="w-16 h-0.5 bg-green-500 mx-3"></div>
+        <div class="flex items-center">
+            <div class="flex items-center justify-center w-8 h-8 rounded-full bg-green-500 text-white text-sm font-bold">
+                <i data-lucide="check" class="w-4 h-4"></i>
+            </div>
+            <span class="ml-2 text-sm font-medium text-green-600">Confirmation</span>
+        </div>
+    </div>
+
+    <!-- Success Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <i data-lucide="check-circle" class="w-10 h-10 text-green-500"></i>
+        </div>
+
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h1>
+        <p class="text-gray-500 mb-6">Your booking has been confirmed. Get ready for an amazing trip!</p>
+
+        <div class="bg-gray-50 rounded-xl p-6 text-left space-y-3 mb-6">
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Booking ID</span>
+                <span class="font-mono font-medium text-gray-900">{{ booking.bookingId }}</span>
+            </div>
+            {% if booking.payment and booking.payment.transactionId %}
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Transaction ID</span>
+                <span class="font-mono font-medium text-gray-900">{{ booking.payment.transactionId }}</span>
+            </div>
+            {% endif %}
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Amount Paid</span>
+                <span class="font-semibold text-green-600">${{ "%.2f"|format(booking.totalAmount) }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Payment Method</span>
+                <span class="text-gray-900 capitalize">{{ booking.payment.method if booking.payment else 'Card' }}</span>
+            </div>
+            {% if package %}
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Package</span>
+                <span class="text-gray-900">{{ package.title }}</span>
+            </div>
+            {% endif %}
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Travel Date</span>
+                <span class="text-gray-900">{{ booking.travelDates.start }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Status</span>
+                <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Confirmed</span>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+            <a href="{{ url_for('bookings.detail', booking_id=booking._id) }}"
+                class="flex-1 gradient-bg text-white py-3 rounded-lg font-semibold hover:opacity-90 transition text-center">
+                View Booking Details
+            </a>
+            <a href="{{ url_for('bookings.my_bookings') }}"
+                class="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition text-center">
+                My Bookings
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
