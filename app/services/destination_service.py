@@ -3,6 +3,7 @@
 import os
 import json
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from groq import Groq
 
@@ -124,14 +125,14 @@ def _groq_client():
     return Groq(api_key=key)
 
 
-def _ask_groq(prompt, temperature=0.7):
+def _ask_groq(prompt, temperature=0.7, model=None):
     """Call Groq AI and return the response text."""
     client = _groq_client()
     if not client:
         return None
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=model or "llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are a helpful travel guide assistant. Always respond with valid JSON only, no extra text, no markdown fences."},
                 {"role": "user", "content": prompt},
@@ -171,7 +172,7 @@ def _wiki_image(name):
             resp = requests.get(
                 f"https://en.wikipedia.org/api/rest_v1/page/summary/{slug}",
                 headers={"User-Agent": "TripPlanner/1.0"},
-                timeout=5,
+                timeout=3,
             )
             if resp.ok:
                 data = resp.json()
@@ -341,7 +342,7 @@ def _geocode_place(place_name, near_lat, near_lng, state_hint=""):
             resp = requests.get(
                 f"{ORS_BASE}/geocode/search",
                 params={"api_key": key, "text": text, "size": 3, "boundary.country": "IN"},
-                timeout=8,
+                timeout=5,
             )
             resp.raise_for_status()
             features = resp.json().get("features", [])
@@ -366,6 +367,31 @@ def _geocode_place(place_name, near_lat, near_lng, state_hint=""):
     return None, None
 
 
+def _process_single_place(item, lat, lng):
+    """Geocode and fetch image for a single famous place (runs in thread)."""
+    name = item.get("name", "")
+    if not name:
+        return None
+
+    plat, plng = _geocode_place(name, lat, lng)
+    if plat is None or plng is None:
+        return None
+
+    dist = round(haversine(lat, lng, plat, plng), 1)
+
+    return {
+        'name': name,
+        'lat': plat,
+        'lng': plng,
+        'type': item.get('type', 'attraction'),
+        'description': item.get('description', ''),
+        'city': '',
+        'image_url': _wiki_image(name),
+        'distance_km': dist,
+        'rating': item.get('rating', 4.0),
+    }
+
+
 def get_famous_places_at_destination(lat, lng, radius_km=40):
     """Fetch tourist attractions near (lat, lng) using Groq AI + ORS geocoding for accurate coords."""
     prompt = f"""List 12 famous tourist attractions near coordinates ({lat}, {lng}) within {radius_km}km.
@@ -376,36 +402,32 @@ Return a JSON array:
 Types: temple, monument, museum, beach, park, historic, nature, waterfall, attraction.
 Use REAL well-known place names. Return ONLY the JSON array."""
 
-    raw = _ask_groq(prompt)
+    raw = _ask_groq(prompt, model="llama-3.1-8b-instant")
     items = _parse_json(raw) or []
 
-    places = []
+    # Deduplicate
+    unique_items = []
     seen = set()
     for item in items:
         name = item.get("name", "")
-        if not name or name.lower() in seen:
-            continue
-        seen.add(name.lower())
+        if name and name.lower() not in seen:
+            seen.add(name.lower())
+            unique_items.append(item)
 
-        # Geocode each place for ACCURATE coordinates instead of trusting AI
-        plat, plng = _geocode_place(name, lat, lng)
-        if plat is None or plng is None:
-            # Skip places we can't geocode — they'd show up in wrong spots
-            continue
-
-        dist = round(haversine(lat, lng, plat, plng), 1)
-
-        places.append({
-            'name': name,
-            'lat': plat,
-            'lng': plng,
-            'type': item.get('type', 'attraction'),
-            'description': item.get('description', ''),
-            'city': '',
-            'image_url': _wiki_image(name),
-            'distance_km': dist,
-            'rating': item.get('rating', 4.0),
-        })
+    # Geocode + fetch images in parallel (up to 6 threads)
+    places = []
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = {
+            executor.submit(_process_single_place, item, lat, lng): item
+            for item in unique_items
+        }
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+                if result:
+                    places.append(result)
+            except Exception:
+                continue
 
     places.sort(key=lambda x: (-x.get('rating', 0), x['distance_km']))
     return places[:20]
@@ -425,10 +447,10 @@ Return a JSON array:
 ]
 Use REAL distances. Return ONLY the JSON array."""
 
-    raw = _ask_groq(prompt)
+    raw = _ask_groq(prompt, model="llama-3.1-8b-instant")
     items = _parse_json(raw) or []
 
-    destinations = []
+    unique_items = []
     seen = set()
     seen.add(current_name.lower())
 
@@ -437,8 +459,12 @@ Use REAL distances. Return ONLY the JSON array."""
         if not name or name.lower() in seen:
             continue
         seen.add(name.lower())
+        unique_items.append(item)
 
-        destinations.append({
+    # Fetch Wikipedia images in parallel
+    def _build_destination(item):
+        name = item.get("name", "")
+        return {
             'name': name,
             'state': item.get('state', ''),
             'distance_km': item.get('distance_km', 0),
@@ -446,7 +472,16 @@ Use REAL distances. Return ONLY the JSON array."""
             'popularity_score': item.get('popularity_score', 7),
             'ideal_days': item.get('ideal_days', 3),
             'image_url': _wiki_image(name),
-        })
+        }
+
+    destinations = []
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = [executor.submit(_build_destination, item) for item in unique_items]
+        for future in as_completed(futures):
+            try:
+                destinations.append(future.result())
+            except Exception:
+                continue
 
     destinations.sort(key=lambda x: x['distance_km'])
     return destinations[:8]

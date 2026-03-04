@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 from flask import Blueprint, render_template, request, jsonify, session
 from app.services.ai_service import generate_itinerary, get_suggestions
 from app.services.itinerary_service import generate_smart_itinerary
@@ -89,29 +91,50 @@ def destination_guide():
         travel_mode = 'train'
 
     try:
-        # 1. Get destination info
+        # 1. Get destination info (must run first — provides lat/lng)
         dest, error = get_destination_guide(destination)
         if error:
             return jsonify({'error': error}), 404
 
-        # 2. Famous places near the destination
+        # 2, 3, 4 — run in parallel since they all depend only on step 1
         famous = []
-        if dest.get('lat') and dest.get('lng'):
-            try:
-                famous = get_famous_places_at_destination(dest['lat'], dest['lng'], radius_km=40)
-            except Exception as e:
-                print(f"[WARN] Famous places fetch failed: {e}")
-
-        # 3. Nearby destinations
         nearby = []
-        if dest.get('lat') and dest.get('lng'):
-            try:
-                nearby = get_nearby_destinations(dest['lat'], dest['lng'], dest['name'], radius_km=200)
-            except Exception as e:
-                print(f"[WARN] Nearby destinations fetch failed: {e}")
+        travel = {}
 
-        # 4. Travel info from origin city
-        travel = get_travel_info(from_city, dest, travel_mode)
+        has_coords = dest.get('lat') and dest.get('lng')
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {}
+
+            if has_coords:
+                futures['famous'] = executor.submit(
+                    get_famous_places_at_destination, dest['lat'], dest['lng'], 40
+                )
+                futures['nearby'] = executor.submit(
+                    get_nearby_destinations, dest['lat'], dest['lng'], dest['name'], 200
+                )
+
+            futures['travel'] = executor.submit(
+                get_travel_info, from_city, dest, travel_mode
+            )
+
+            if 'famous' in futures:
+                try:
+                    famous = futures['famous'].result()
+                except Exception as e:
+                    print(f"[WARN] Famous places fetch failed: {e}")
+
+            if 'nearby' in futures:
+                try:
+                    nearby = futures['nearby'].result()
+                except Exception as e:
+                    print(f"[WARN] Nearby destinations fetch failed: {e}")
+
+            try:
+                travel = futures['travel'].result()
+            except Exception as e:
+                print(f"[WARN] Travel info fetch failed: {e}")
+                travel = get_travel_info(None, dest, travel_mode)
 
         return jsonify({
             'destination': dest,

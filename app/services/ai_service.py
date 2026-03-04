@@ -3,6 +3,7 @@
 import os
 import json
 import requests
+from concurrent.futures import ThreadPoolExecutor
 from groq import Groq
 from app.models.ai_itinerary import create_ai_itinerary
 
@@ -14,14 +15,14 @@ def _groq_client():
     return Groq(api_key=key)
 
 
-def _ask_groq(prompt, max_tokens=3000):
+def _ask_groq(prompt, max_tokens=3000, model=None):
     """Call Groq AI and return the response text."""
     client = _groq_client()
     if not client:
         return None
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=model or "llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are an expert travel planner. Always respond with valid JSON only, no markdown, no extra text."},
                 {"role": "user", "content": prompt},
@@ -57,7 +58,7 @@ def _get_place_image(place_name):
             resp = requests.get(
                 f"https://en.wikipedia.org/api/rest_v1/page/summary/{slug}",
                 headers={"User-Agent": "TripPlanner/1.0"},
-                timeout=5,
+                timeout=3,
             )
             if resp.ok:
                 data = resp.json()
@@ -74,14 +75,33 @@ def _get_place_image(place_name):
 
 
 def _add_images_to_itinerary(generated):
-    """Add image URLs to each activity in the itinerary."""
+    """Add image URLs to each activity in the itinerary (parallel fetches)."""
     if not generated or 'days' not in generated:
         return generated
+
+    # Collect all activities that need images
+    activities_needing_images = []
     for day in generated.get('days', []):
         for activity in day.get('activities', []):
             name = activity.get('activity', '')
             if name and 'image_url' not in activity:
-                activity['image_url'] = _get_place_image(name)
+                activities_needing_images.append((activity, name))
+
+    if not activities_needing_images:
+        return generated
+
+    # Fetch images in parallel
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        futures = {
+            executor.submit(_get_place_image, name): activity
+            for activity, name in activities_needing_images
+        }
+        for future in futures:
+            try:
+                futures[future]['image_url'] = future.result()
+            except Exception:
+                pass
+
     return generated
 
 
@@ -285,9 +305,18 @@ Return ONLY the JSON array."""
             {'destination': 'Reykjavik', 'country': 'Iceland', 'description': 'Northern lights, geysers, and dramatic volcanic landscapes.', 'estimatedCost': 2500, 'bestTimeToVisit': 'June - August'},
         ]
 
-    # Add images to suggestions
-    for s in suggestions:
-        if 'image_url' not in s:
-            s['image_url'] = _get_place_image(s.get('destination', ''))
+    # Add images to suggestions in parallel
+    items_needing_images = [(s, s.get('destination', '')) for s in suggestions if 'image_url' not in s]
+    if items_needing_images:
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {
+                executor.submit(_get_place_image, name): s
+                for s, name in items_needing_images
+            }
+            for future in futures:
+                try:
+                    futures[future]['image_url'] = future.result()
+                except Exception:
+                    pass
 
     return suggestions, None
