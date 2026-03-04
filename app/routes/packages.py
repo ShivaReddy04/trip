@@ -14,14 +14,6 @@ def browse():
     page, limit = paginate_args(request)
     filters = {
         'query': request.args.get('q', ''),
-        'category': request.args.get('category', ''),
-        'minPrice': request.args.get('minPrice', ''),
-        'maxPrice': request.args.get('maxPrice', ''),
-        'duration': request.args.get('duration', ''),
-        'difficulty': request.args.get('difficulty', ''),
-        'destination': request.args.get('destination', ''),
-        'rating': request.args.get('rating', ''),
-        'featured': request.args.get('featured', ''),
     }
     sort_by = request.args.get('sortBy', 'createdAt')
     sort_order = request.args.get('sortOrder', 'desc')

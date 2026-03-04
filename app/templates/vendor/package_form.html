@@ -180,16 +180,25 @@
         <div id="image-previews" class="flex flex-wrap gap-3 mb-4">
             {% if package and package.images %}
                 {% for img in package.images %}
-                <div class="relative">
+                <div class="relative group" data-img-url="{{ img.url }}">
                     <img src="{{ img.url }}" class="w-24 h-24 rounded-lg object-cover">
+                    <button type="button" onclick="removeImage(this.parentElement)"
+                        class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition">&times;</button>
                 </div>
                 {% endfor %}
             {% endif %}
         </div>
-        <label class="inline-block cursor-pointer gradient-bg text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">
-            <i data-lucide="upload" class="w-4 h-4 inline mr-1"></i>Upload Images
-            <input type="file" accept="image/*" multiple class="hidden" onchange="uploadPackageImages(this)">
-        </label>
+        <div id="upload-error" class="hidden mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"></div>
+        <div class="flex items-center gap-3">
+            <label id="upload-label" class="inline-flex items-center cursor-pointer gradient-bg text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">
+                <i data-lucide="upload" class="w-4 h-4 inline mr-1"></i>Upload Images
+                <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple class="hidden" onchange="uploadPackageImages(this)">
+            </label>
+            <span id="upload-spinner" class="hidden">
+                <span class="spinner"></span>
+            </span>
+            <span class="text-xs text-gray-400">Max 5 MB per file. PNG, JPG, GIF, WebP.</span>
+        </div>
     </div>
 
     <!-- Submit -->
@@ -220,37 +229,115 @@ function addDestination() {
     lucide.createIcons();
 }
 
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+
+function showUploadError(msg) {
+    const el = document.getElementById('upload-error');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+}
+
+function clearUploadError() {
+    document.getElementById('upload-error').classList.add('hidden');
+}
+
+function removeImage(wrapper) {
+    const url = wrapper.dataset.imgUrl;
+    const existing = JSON.parse(document.getElementById('images-json').value || '[]');
+    const updated = existing.filter(img => img.url !== url);
+    // Ensure first image is marked primary
+    if (updated.length > 0 && !updated.some(img => img.isPrimary)) {
+        updated[0].isPrimary = true;
+    }
+    document.getElementById('images-json').value = JSON.stringify(updated);
+    wrapper.remove();
+    showToast('Image removed', 'info');
+}
+
 async function uploadPackageImages(input) {
     const files = input.files;
     if (!files.length) return;
 
+    clearUploadError();
+
+    // Client-side validation
+    const clientErrors = [];
+    const validFiles = [];
+    for (const f of files) {
+        if (!ALLOWED_TYPES.includes(f.type)) {
+            clientErrors.push(`"${f.name}" is not a supported image type.`);
+        } else if (f.size > MAX_SIZE) {
+            clientErrors.push(`"${f.name}" exceeds the 5 MB limit.`);
+        } else {
+            validFiles.push(f);
+        }
+    }
+
+    if (clientErrors.length > 0) {
+        showUploadError(clientErrors.join(' '));
+    }
+    if (validFiles.length === 0) {
+        input.value = '';
+        return;
+    }
+
     const formData = new FormData();
-    for (const f of files) formData.append('images', f);
+    for (const f of validFiles) formData.append('images', f);
+
+    // Show spinner, disable button
+    document.getElementById('upload-spinner').classList.remove('hidden');
+    document.getElementById('upload-label').style.pointerEvents = 'none';
+    document.getElementById('upload-label').style.opacity = '0.6';
 
     try {
         const res = await fetch('/api/uploads/images', {
             method: 'POST',
             body: formData,
             credentials: 'same-origin',
+            headers: { 'X-CSRFToken': getCsrfToken() },
         });
         const data = await res.json();
-        if (data.images) {
+
+        if (!res.ok) {
+            showUploadError(data.error || 'Upload failed. Please try again.');
+            showToast(data.error || 'Upload failed', 'error');
+            return;
+        }
+
+        if (data.warnings && data.warnings.length) {
+            showUploadError(data.warnings.join(' '));
+        }
+
+        if (data.images && data.images.length) {
             const existing = JSON.parse(document.getElementById('images-json').value || '[]');
-            const newImages = data.images.map(img => ({ url: img.url, alt: '', isPrimary: existing.length === 0 }));
+            const newImages = data.images.map((img, i) => ({
+                url: img.url, alt: '', isPrimary: existing.length === 0 && i === 0
+            }));
             const all = [...existing, ...newImages];
             document.getElementById('images-json').value = JSON.stringify(all);
 
             const previews = document.getElementById('image-previews');
             data.images.forEach(img => {
                 const div = document.createElement('div');
-                div.className = 'relative';
-                div.innerHTML = `<img src="${img.url}" class="w-24 h-24 rounded-lg object-cover">`;
+                div.className = 'relative group';
+                div.dataset.imgUrl = img.url;
+                div.innerHTML = `
+                    <img src="${img.url}" class="w-24 h-24 rounded-lg object-cover">
+                    <button type="button" onclick="removeImage(this.parentElement)"
+                        class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition">&times;</button>`;
                 previews.appendChild(div);
             });
-            showToast('Images uploaded!', 'success');
+            showToast('Images uploaded successfully!', 'success');
         }
     } catch (err) {
+        showUploadError('Network error — could not upload images. Please check your connection.');
         showToast('Upload failed', 'error');
+    } finally {
+        document.getElementById('upload-spinner').classList.add('hidden');
+        document.getElementById('upload-label').style.pointerEvents = '';
+        document.getElementById('upload-label').style.opacity = '';
+        input.value = '';
     }
 }
 </script>

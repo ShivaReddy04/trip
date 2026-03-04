@@ -23,7 +23,7 @@ def create_app(config_name=None):
     csrf.init_app(app)
     cors.init_app(app)
 
-    # Only exempt external webhook endpoints from CSRF
+    # Exempt webhook endpoints from CSRF
     csrf.exempt('app.routes.payments.stripe_webhook')
     csrf.exempt('app.routes.payments.razorpay_webhook')
 
@@ -36,7 +36,10 @@ def create_app(config_name=None):
         uid = session.get('user_id')
         if uid:
             user = find_user_by_id(uid)
-        return dict(current_user=user)
+        return dict(
+            current_user=user,
+            google_maps_api_key=app.config.get('GOOGLE_MAPS_API_KEY', ''),
+        )
 
     # ⭐ Import models so migrations can detect them
     from app.models import User, Package, Booking, Review, AiItinerary  # noqa: F401
@@ -49,6 +52,7 @@ def create_app(config_name=None):
     from .routes.payments import payments_bp
     from .routes.reviews import reviews_bp
     from .routes.ai import ai_bp
+    csrf.exempt(ai_bp)
     from .routes.maps import maps_bp
     from .routes.uploads import uploads_bp
     from .routes.vendor import vendor_bp
@@ -64,19 +68,17 @@ def create_app(config_name=None):
     app.register_blueprint(uploads_bp, url_prefix='/api/uploads')
     app.register_blueprint(vendor_bp, url_prefix='/vendor')
 
-    # Home route
+    # Home route — redirect to the appropriate page
     @app.route('/')
     def home():
-        from flask import render_template, session, redirect, url_for
+        from flask import session, redirect, url_for
         from app.models.user import find_user_by_id
-        from app.models.package import get_featured_packages, get_popular_packages
         uid = session.get('user_id')
         if uid:
             user = find_user_by_id(uid)
             if user and user.role == 'vendor':
                 return redirect(url_for('vendor.dashboard'))
-        featured = get_featured_packages(6)
-        popular = get_popular_packages(6)
-        return render_template('pages/home.html', featured=featured, popular=popular)
+            return redirect(url_for('maps.home_page'))
+        return redirect(url_for('auth.login'))
 
     return app

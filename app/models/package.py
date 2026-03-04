@@ -159,7 +159,7 @@ def search_packages(filters, page=1, limit=10, sort_by='createdAt', sort_order='
 
     if filters.get('query'):
         search = f"%{filters['query'].lower()}%"
-        q = q.filter(db.or_(Package.title.ilike(search), Package.description.ilike(search)))
+        q = q.filter(Package.title.ilike(search))
     if filters.get('category'):
         q = q.filter(Package.category == filters['category'])
     if filters.get('difficulty'):

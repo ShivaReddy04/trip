@@ -3,12 +3,14 @@ from app.services.maps_service import (
     search_places, get_place_details, get_famous_places,
     get_distance, geocode
 )
+from app.utils.decorators import login_required
 
 maps_bp = Blueprint('maps', __name__, template_folder='../templates')
 
 
-@maps_bp.route('/explore')
-def explore():
+@maps_bp.route('/home')
+@login_required
+def home_page():
     return render_template('pages/explore.html')
 
 

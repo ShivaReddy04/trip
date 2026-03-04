@@ -30,7 +30,7 @@ def login():
         return redirect(next_url)
     if user.role == 'vendor':
         return redirect(url_for('vendor.dashboard'))
-    return redirect(url_for('home'))
+    return redirect(url_for('maps.home_page'))
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
@@ -86,14 +86,14 @@ def register():
     flash('Account created successfully! Welcome to TripPlanner.', 'success')
     if role == 'vendor':
         return redirect(url_for('vendor.dashboard'))
-    return redirect(url_for('home'))
+    return redirect(url_for('maps.home_page'))
 
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
     session.clear()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('home'))
+    return redirect(url_for('auth.login'))
 
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])

@@ -1,90 +1,265 @@
 {% extends 'base.html' %}
-{% block title %}AI Trip Planner - TripPlanner{% endblock %}
+{% block title %}Destination Guide - TripPlanner{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+    .leaflet-popup-content { font-family: inherit; }
+
+    /* Destination center marker */
+    .dest-marker { background: #667eea; border: 3px solid #fff; border-radius: 50%; width: 20px; height: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+    .origin-marker { background: #22c55e; border: 3px solid #fff; border-radius: 50%; width: 18px; height: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+
+    /* Numbered dot markers */
+    .num-marker {
+        display: flex; align-items: center; justify-content: center;
+        width: 28px; height: 28px; border-radius: 50%;
+        background: #94a3b8; border: 2.5px solid #fff;
+        color: #fff; font-size: 11px; font-weight: 700;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        transition: all 0.3s cubic-bezier(.4,0,.2,1);
+        cursor: pointer;
+    }
+    .num-marker.active {
+        width: 36px; height: 36px; font-size: 14px;
+        background: #f97316; border-color: #fff;
+        box-shadow: 0 0 0 6px rgba(249,115,22,0.25), 0 3px 10px rgba(0,0,0,0.3);
+        animation: marker-pulse 1.8s ease-in-out infinite;
+        z-index: 9000 !important;
+    }
+
+    @keyframes marker-pulse {
+        0%, 100% { box-shadow: 0 0 0 6px rgba(249,115,22,0.25), 0 3px 10px rgba(0,0,0,0.3); }
+        50%      { box-shadow: 0 0 0 12px rgba(249,115,22,0.10), 0 3px 10px rgba(0,0,0,0.3); }
+    }
+
+    /* Split-screen famous places */
+    .places-split {
+        display: flex; gap: 0;
+        border-radius: 12px; overflow: hidden;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        height: 520px;
+    }
+    .places-list {
+        width: 45%; min-width: 280px;
+        overflow-y: auto; background: #fff;
+        scroll-behavior: smooth;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+    }
+    .places-list::-webkit-scrollbar { width: 5px; }
+    .places-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .places-list::-webkit-scrollbar-track { background: transparent; }
+
+    .places-map {
+        flex: 1; min-height: 100%; position: relative;
+    }
+    .places-map .leaflet-container { height: 100% !important; width: 100% !important; }
+
+    /* Place card in the list */
+    .place-card {
+        display: flex; gap: 12px; padding: 14px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        cursor: pointer; transition: all 0.2s;
+        position: relative;
+    }
+    .place-card::before {
+        content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+        background: transparent; border-radius: 0 4px 4px 0;
+        transition: background 0.2s;
+    }
+    .place-card:hover { background: #f8fafc; }
+    .place-card.active { background: #fff7ed; }
+    .place-card.active::before { background: #f97316; }
+
+    .place-card-num {
+        display: flex; align-items: center; justify-content: center;
+        width: 30px; height: 30px; min-width: 30px; border-radius: 50%;
+        background: #e2e8f0; color: #475569;
+        font-size: 12px; font-weight: 700;
+        transition: all 0.2s;
+    }
+    .place-card.active .place-card-num,
+    .place-card:hover .place-card-num {
+        background: #f97316; color: #fff;
+    }
+
+    .place-card-img {
+        width: 64px; height: 64px; min-width: 64px;
+        border-radius: 8px; object-fit: cover;
+    }
+
+    /* Responsive: stack on mobile */
+    @media (max-width: 768px) {
+        .places-split { flex-direction: column; height: auto; }
+        .places-list { width: 100%; max-height: 350px; }
+        .places-map { height: 300px; }
+    }
+
+    /* Language bar */
+    .lang-bar {
+        display: flex; align-items: center; gap: 6px;
+        padding: 8px 12px; background: #f8fafc;
+        border-radius: 12px; border: 1px solid #e2e8f0;
+        overflow-x: auto; scrollbar-width: none;
+    }
+    .lang-bar::-webkit-scrollbar { display: none; }
+
+    .lang-pill {
+        padding: 5px 14px; border-radius: 20px; font-size: 12px;
+        font-weight: 500; cursor: pointer; white-space: nowrap;
+        background: #fff; color: #64748b; border: 1.5px solid #e2e8f0;
+        transition: all 0.15s;
+    }
+    .lang-pill:hover { border-color: #6366f1; color: #6366f1; }
+    .lang-pill.active {
+        background: #6366f1; color: #fff; border-color: #6366f1;
+    }
+
+    /* Speak button */
+    .speak-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 7px 16px; border-radius: 20px; font-size: 12px;
+        font-weight: 600; cursor: pointer;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: #fff; border: none; box-shadow: 0 2px 8px rgba(99,102,241,0.25);
+        transition: all 0.2s;
+    }
+    .speak-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .speak-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .speak-btn.playing { background: linear-gradient(135deg, #ef4444, #f97316); }
+
+    .translating-shimmer {
+        background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* Plan My Trip modal */
+    .trip-modal-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+        z-index: 50; display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .trip-modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+    .trip-modal {
+        background: #fff; border-radius: 16px; width: 95%; max-width: 560px;
+        max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        transform: translateY(24px) scale(0.97); transition: transform 0.25s;
+    }
+    .trip-modal-overlay.open .trip-modal { transform: translateY(0) scale(1); }
+
+    .trip-modal::-webkit-scrollbar { width: 5px; }
+    .trip-modal::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    /* Place checkbox pills */
+    .place-pill input { display: none; }
+    .place-pill span {
+        display: inline-block; padding: 6px 14px; border-radius: 20px;
+        font-size: 12px; font-weight: 500; cursor: pointer;
+        background: #f1f5f9; color: #475569; border: 1.5px solid #e2e8f0;
+        transition: all 0.15s;
+    }
+    .place-pill input:checked + span {
+        background: #f97316; color: #fff; border-color: #f97316;
+    }
+    .place-pill span:hover { border-color: #f97316; }
+
+    /* Itinerary result cards */
+    .itin-day-card {
+        border-left: 3px solid #f97316; padding-left: 16px; margin-bottom: 20px;
+    }
+    .itin-activity {
+        display: flex; gap: 12px; padding: 10px 0;
+        border-bottom: 1px solid #f8fafc;
+    }
+    .itin-activity:last-child { border-bottom: none; }
+    .itin-time {
+        min-width: 65px; font-size: 11px; font-weight: 600; color: #6366f1;
+        padding-top: 2px;
+    }
+    .itin-type-dot {
+        width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="text-center mb-10">
         <div class="w-16 h-16 gradient-bg rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <i data-lucide="sparkles" class="w-8 h-8 text-white"></i>
+            <i data-lucide="compass" class="w-8 h-8 text-white"></i>
         </div>
-        <h1 class="text-3xl font-bold text-gray-900">AI Trip Planner</h1>
-        <p class="text-gray-500 mt-2 max-w-xl mx-auto">Tell us about your dream trip and our AI will create a personalized day-by-day itinerary.</p>
+        <h1 class="text-3xl font-bold text-gray-900">Destination Guide</h1>
+        <p class="text-gray-500 mt-2 max-w-xl mx-auto">Pick a destination and discover how to get there, famous places, things to do, and nearby gems.</p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        <!-- Form -->
+        <!-- Form (left panel) -->
         <div class="lg:col-span-2">
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-24">
-                <h3 class="font-semibold text-gray-900 mb-4">Plan Your Trip</h3>
+                <h3 class="font-semibold text-gray-900 mb-4">Explore a Destination</h3>
 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Destinations</label>
-                        <input type="text" id="ai-destinations" placeholder="e.g. Paris, Rome, Barcelona"
-                            class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                        <p class="text-xs text-gray-400 mt-1">Comma-separated</p>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration (days)</label>
-                            <input type="number" id="ai-duration" value="5" min="1" max="30"
-                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Travelers</label>
-                            <input type="number" id="ai-travelers" value="2" min="1" max="50"
-                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Total Budget ($)</label>
-                        <input type="number" id="ai-budget" value="2000" min="100"
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Destination <span class="text-red-400">*</span></label>
+                        <input type="text" id="dest-input" placeholder="e.g. Goa, Jaipur, Varanasi"
                             class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Start Date (optional)</label>
-                        <input type="date" id="ai-start-date"
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Traveling From <span class="text-xs text-gray-400">(optional)</span></label>
+                        <input type="text" id="from-input" placeholder="e.g. Hyderabad, Mumbai"
                             class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Preferences</label>
-                        <div class="flex flex-wrap gap-2" id="preferences-container">
-                            {% for pref in ['Sightseeing', 'Food & Dining', 'Adventure', 'Culture', 'Nature', 'Shopping', 'Nightlife', 'Relaxation'] %}
-                            <label class="cursor-pointer">
-                                <input type="checkbox" value="{{ pref }}" class="peer hidden pref-check">
-                                <span class="px-3 py-1 rounded-full text-xs border border-gray-200 peer-checked:bg-primary-500 peer-checked:text-white peer-checked:border-primary-500 transition">{{ pref }}</span>
-                            </label>
-                            {% endfor %}
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Travel Preference</label>
+                        <div class="grid grid-cols-4 gap-2" id="travel-pref">
+                            <button type="button" data-mode="train" onclick="selectTravelMode(this)"
+                                class="travel-mode-btn flex flex-col items-center gap-1 p-3 rounded-xl border-2 border-gray-200 hover:border-primary-400 transition text-center selected border-primary-500 bg-primary-50">
+                                <i data-lucide="train-front" class="w-5 h-5"></i>
+                                <span class="text-xs font-medium">Train</span>
+                            </button>
+                            <button type="button" data-mode="flight" onclick="selectTravelMode(this)"
+                                class="travel-mode-btn flex flex-col items-center gap-1 p-3 rounded-xl border-2 border-gray-200 hover:border-primary-400 transition text-center">
+                                <i data-lucide="plane" class="w-5 h-5"></i>
+                                <span class="text-xs font-medium">Flight</span>
+                            </button>
+                            <button type="button" data-mode="bus" onclick="selectTravelMode(this)"
+                                class="travel-mode-btn flex flex-col items-center gap-1 p-3 rounded-xl border-2 border-gray-200 hover:border-primary-400 transition text-center">
+                                <i data-lucide="bus" class="w-5 h-5"></i>
+                                <span class="text-xs font-medium">Bus</span>
+                            </button>
+                            <button type="button" data-mode="car" onclick="selectTravelMode(this)"
+                                class="travel-mode-btn flex flex-col items-center gap-1 p-3 rounded-xl border-2 border-gray-200 hover:border-primary-400 transition text-center">
+                                <i data-lucide="car" class="w-5 h-5"></i>
+                                <span class="text-xs font-medium">Car</span>
+                            </button>
                         </div>
                     </div>
 
-                    <button onclick="generateItinerary()" id="generate-btn"
+                    <button onclick="exploreDest()" id="explore-btn"
                         class="w-full gradient-bg text-white py-3 rounded-lg font-semibold hover:opacity-90 transition flex items-center justify-center">
-                        <i data-lucide="sparkles" class="w-5 h-5 mr-2"></i>Generate Itinerary
+                        <i data-lucide="compass" class="w-5 h-5 mr-2"></i>Explore Destination
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Results -->
+        <!-- Results (right panel) -->
         <div class="lg:col-span-3">
-            <!-- Loading State -->
+            <!-- Loading -->
             <div id="ai-loading" class="hidden text-center py-16">
                 <div class="ai-loading mb-4 inline-flex">
                     <span></span><span></span><span></span>
                 </div>
-                <p class="text-gray-500">Our AI is crafting your perfect itinerary...</p>
-                <p class="text-sm text-gray-400 mt-1">This may take a moment</p>
+                <p class="text-gray-500">Discovering your destination...</p>
             </div>
 
             <!-- Error -->
@@ -92,28 +267,145 @@
                 <p id="ai-error-msg"></p>
             </div>
 
-            <!-- Result -->
+            <!-- Result sections -->
             <div id="ai-result" class="hidden space-y-6">
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-2" id="itinerary-title"></h2>
-                    <div class="flex items-center space-x-4 text-sm text-gray-500 mb-4">
-                        <span id="itinerary-budget" class="flex items-center"><i data-lucide="wallet" class="w-4 h-4 mr-1"></i></span>
+                <!-- Hero -->
+                <div id="hero-section"></div>
+
+                <!-- Language bar + Speak -->
+                <div id="lang-bar-section" class="hidden">
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <div class="lang-bar flex-1" id="lang-pills">
+                            <!-- filled by JS -->
+                        </div>
+                        <button class="speak-btn" id="speak-btn" onclick="speakCurrentSection()" disabled>
+                            <i data-lucide="volume-2" class="w-4 h-4"></i>
+                            <span id="speak-btn-text">Listen</span>
+                        </button>
                     </div>
-                    <div id="itinerary-recommendations" class="space-y-1"></div>
+                    <p class="text-[10px] text-gray-400 mt-1.5 ml-1" id="lang-status"></p>
                 </div>
 
-                <div id="itinerary-map" class="hidden"></div>
+                <!-- How to Reach -->
+                <div id="travel-info-section"></div>
 
-                <div id="itinerary-days" class="space-y-4"></div>
+                <!-- Famous Places + Map (split-screen) -->
+                <div id="famous-places-section"></div>
+
+                <!-- Things to Do -->
+                <div id="things-to-do-section"></div>
+
+                <!-- Travel Tips -->
+                <div id="travel-tips-section"></div>
+
+                <!-- Nearby Destinations -->
+                <div id="nearby-section"></div>
             </div>
 
             <!-- Empty State -->
             <div id="ai-empty" class="text-center py-16 bg-white rounded-xl border border-gray-100">
-                <i data-lucide="map" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">Your itinerary will appear here</h3>
-                <p class="text-gray-500">Fill in the details and click Generate</p>
+                <i data-lucide="compass" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Your destination guide will appear here</h3>
+                <p class="text-gray-500">Enter a destination and click Explore</p>
             </div>
         </div>
+    </div>
+</div>
+<!-- Plan My Trip Modal -->
+<div class="trip-modal-overlay" id="trip-modal-overlay" onclick="if(event.target===this)closeTripModal()">
+    <div class="trip-modal">
+        <!-- Modal header -->
+        <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 rounded-t-2xl flex items-center justify-between z-10">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center">
+                    <i data-lucide="map-pin" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-900 text-lg" id="trip-modal-title">Plan My Trip</h3>
+                    <p class="text-xs text-gray-500" id="trip-modal-subtitle">to Destination</p>
+                </div>
+            </div>
+            <button onclick="closeTripModal()" class="p-2 hover:bg-gray-100 rounded-lg transition">
+                <i data-lucide="x" class="w-5 h-5 text-gray-400"></i>
+            </button>
+        </div>
+
+        <!-- Form -->
+        <div id="trip-form-section" class="px-6 py-5 space-y-5">
+            <!-- Members & Days row -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                        <i data-lucide="users" class="w-3.5 h-3.5 inline mr-1"></i>Members
+                    </label>
+                    <input type="number" id="trip-members" value="2" min="1" max="20"
+                        class="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-orange-400 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                        <i data-lucide="calendar-days" class="w-3.5 h-3.5 inline mr-1"></i>Days
+                    </label>
+                    <input type="number" id="trip-days" value="3" min="1" max="15"
+                        class="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-orange-400 outline-none">
+                </div>
+            </div>
+
+            <!-- Budget -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                    <i data-lucide="indian-rupee" class="w-3.5 h-3.5 inline mr-1"></i>Total Budget (INR)
+                </label>
+                <input type="number" id="trip-budget" value="15000" min="1000" step="1000"
+                    class="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-orange-400 outline-none"
+                    placeholder="e.g. 15000">
+                <p class="text-xs text-gray-400 mt-1" id="trip-per-person">Per person: ~₹7,500</p>
+            </div>
+
+            <!-- Start date -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5 inline mr-1"></i>Start Date
+                </label>
+                <input type="date" id="trip-start-date"
+                    class="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-orange-400 outline-none">
+            </div>
+
+            <!-- Places to cover -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5 inline mr-1"></i>Places to Cover
+                </label>
+                <div class="flex flex-wrap gap-2" id="trip-places-list">
+                    <!-- Filled dynamically -->
+                </div>
+                <p class="text-xs text-gray-400 mt-2">Click to select/deselect places</p>
+            </div>
+
+            <!-- Generate button -->
+            <button onclick="generateTripPlan()" id="trip-generate-btn"
+                class="w-full bg-gradient-to-r from-orange-500 to-pink-500 text-white py-3 rounded-xl font-semibold hover:opacity-90 transition flex items-center justify-center gap-2 text-sm">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                Generate My Trip Plan
+            </button>
+        </div>
+
+        <!-- Loading state -->
+        <div id="trip-loading" class="hidden px-6 py-12 text-center">
+            <div class="ai-loading mb-4 inline-flex">
+                <span></span><span></span><span></span>
+            </div>
+            <p class="text-gray-500 text-sm">Creating your personalized itinerary...</p>
+        </div>
+
+        <!-- Error state -->
+        <div id="trip-error" class="hidden px-6 py-4">
+            <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
+                <p id="trip-error-msg"></p>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div id="trip-result" class="hidden px-6 pb-6"></div>
     </div>
 </div>
 {% endblock %}

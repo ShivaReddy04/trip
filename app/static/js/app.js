@@ -57,14 +57,26 @@ async function apiRequest(url, options = {}) {
         config.body = JSON.stringify(config.body);
     }
 
+    // Allow long-running requests (e.g. itinerary generation) up to 3 minutes
+    const timeoutMs = config.timeout || 180000;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    config.signal = controller.signal;
+
     try {
         const response = await fetch(url, config);
+        clearTimeout(timer);
         const data = await response.json();
         if (!response.ok) {
             throw new Error(data.error || 'Request failed');
         }
         return data;
     } catch (error) {
+        clearTimeout(timer);
+        if (error.name === 'AbortError') {
+            console.error('API Error: Request timed out');
+            throw new Error('Request timed out. Please try again.');
+        }
         console.error('API Error:', error);
         throw error;
     }

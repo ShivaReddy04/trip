@@ -1,8 +1,8 @@
 <header class="bg-white shadow-sm sticky top-0 z-50">
     <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
-            <!-- Logo -->
-            <a href="{{ url_for('home') }}" class="flex items-center space-x-2">
+            <!-- Logo — goes to Home (auth-guarded) -->
+            <a href="{{ url_for('maps.home_page') }}" class="flex items-center space-x-2">
                 <div class="w-8 h-8 bg-gradient-to-r from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
                     <i data-lucide="map-pin" class="w-5 h-5 text-white"></i>
                 </div>
@@ -11,14 +11,50 @@
 
             <!-- Desktop Nav -->
             <div class="hidden md:flex items-center space-x-6">
-                <a href="{{ url_for('packages.browse') }}" class="text-gray-600 hover:text-primary-600 transition">Packages</a>
-                <a href="{{ url_for('ai.planner') }}" class="text-gray-600 hover:text-primary-600 transition">AI Planner</a>
-                <a href="{{ url_for('maps.explore') }}" class="text-gray-600 hover:text-primary-600 transition">Explore</a>
+                {% if current_user and current_user.role == 'vendor' %}
+                    {# ── Vendor Navigation ── #}
+                    <a href="{{ url_for('vendor.dashboard') }}" class="text-gray-600 hover:text-primary-600 transition font-medium">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4 inline mr-1"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('vendor.packages') }}" class="text-gray-600 hover:text-primary-600 transition">
+                        <i data-lucide="package" class="w-4 h-4 inline mr-1"></i>Manage Packages
+                    </a>
+                    <a href="{{ url_for('vendor.bookings') }}" class="text-gray-600 hover:text-primary-600 transition">
+                        <i data-lucide="calendar-check" class="w-4 h-4 inline mr-1"></i>Bookings
+                    </a>
 
-                {% if current_user %}
-                    {% if current_user.role == 'vendor' %}
-                        <a href="{{ url_for('vendor.dashboard') }}" class="text-gray-600 hover:text-primary-600 transition">Dashboard</a>
-                    {% endif %}
+                    <!-- Vendor dropdown -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="flex items-center space-x-2 text-gray-600 hover:text-primary-600">
+                            <div class="w-8 h-8 bg-gradient-to-r from-primary-500 to-accent-500 rounded-full flex items-center justify-center">
+                                <span class="text-white text-sm font-medium">{{ current_user.profile.firstName[0] }}{{ current_user.profile.lastName[0] }}</span>
+                            </div>
+                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </button>
+                        <div class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-50">
+                            <div class="px-4 py-2 border-b">
+                                <p class="text-sm font-medium text-gray-900">{{ current_user.profile.firstName }} {{ current_user.profile.lastName }}</p>
+                                <p class="text-xs text-gray-500">{{ current_user.email }}</p>
+                                <span class="inline-block mt-1 text-xs font-semibold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">Vendor</span>
+                            </div>
+                            <a href="{{ url_for('users.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                <i data-lucide="user" class="w-4 h-4 inline mr-2"></i>Profile
+                            </a>
+                            <hr class="my-1">
+                            <form action="{{ url_for('auth.logout') }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">
+                                    <i data-lucide="log-out" class="w-4 h-4 inline mr-2"></i>Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                {% elif current_user %}
+                    {# ── Regular User Navigation ── #}
+                    <a href="{{ url_for('maps.home_page') }}" class="text-gray-600 hover:text-primary-600 transition">Home</a>
+                    <a href="{{ url_for('packages.browse') }}" class="text-gray-600 hover:text-primary-600 transition">Packages</a>
+                    <a href="{{ url_for('ai.planner') }}" class="text-gray-600 hover:text-primary-600 transition">AI Planner</a>
                     <a href="{{ url_for('bookings.my_bookings') }}" class="text-gray-600 hover:text-primary-600 transition">My Bookings</a>
 
                     <!-- User dropdown -->
@@ -50,6 +86,9 @@
                         </div>
                     </div>
                 {% else %}
+                    {# ── Guest Navigation ── #}
+                    <a href="{{ url_for('packages.browse') }}" class="text-gray-600 hover:text-primary-600 transition">Packages</a>
+                    <a href="{{ url_for('ai.planner') }}" class="text-gray-600 hover:text-primary-600 transition">AI Planner</a>
                     <a href="{{ url_for('auth.login') }}" class="text-gray-600 hover:text-primary-600 transition">Login</a>
                     <a href="{{ url_for('auth.register') }}" class="bg-gradient-to-r from-primary-500 to-accent-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition">Sign Up</a>
                 {% endif %}
@@ -63,20 +102,37 @@
 
         <!-- Mobile menu -->
         <div id="mobile-menu" class="hidden md:hidden pb-4 space-y-2">
-            <a href="{{ url_for('packages.browse') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Packages</a>
-            <a href="{{ url_for('ai.planner') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">AI Planner</a>
-            <a href="{{ url_for('maps.explore') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Explore</a>
-            {% if current_user %}
+            {% if current_user and current_user.role == 'vendor' %}
+                {# ── Vendor Mobile Nav ── #}
+                <a href="{{ url_for('vendor.dashboard') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 font-medium">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4 inline mr-1"></i>Dashboard
+                </a>
+                <a href="{{ url_for('vendor.packages') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">
+                    <i data-lucide="package" class="w-4 h-4 inline mr-1"></i>Manage Packages
+                </a>
+                <a href="{{ url_for('vendor.bookings') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">
+                    <i data-lucide="calendar-check" class="w-4 h-4 inline mr-1"></i>Bookings
+                </a>
+                <a href="{{ url_for('users.profile') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Profile</a>
+                <form action="{{ url_for('auth.logout') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="w-full text-left px-3 py-2 rounded-lg text-red-600 hover:bg-gray-50">Logout</button>
+                </form>
+            {% elif current_user %}
+                {# ── User Mobile Nav ── #}
+                <a href="{{ url_for('maps.home_page') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Home</a>
+                <a href="{{ url_for('packages.browse') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Packages</a>
+                <a href="{{ url_for('ai.planner') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">AI Planner</a>
                 <a href="{{ url_for('bookings.my_bookings') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">My Bookings</a>
                 <a href="{{ url_for('users.profile') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Profile</a>
-                {% if current_user.role == 'vendor' %}
-                    <a href="{{ url_for('vendor.dashboard') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Dashboard</a>
-                {% endif %}
                 <form action="{{ url_for('auth.logout') }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="w-full text-left px-3 py-2 rounded-lg text-red-600 hover:bg-gray-50">Logout</button>
                 </form>
             {% else %}
+                {# ── Guest Mobile Nav ── #}
+                <a href="{{ url_for('packages.browse') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Packages</a>
+                <a href="{{ url_for('ai.planner') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">AI Planner</a>
                 <a href="{{ url_for('auth.login') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Login</a>
                 <a href="{{ url_for('auth.register') }}" class="block px-3 py-2 rounded-lg text-primary-600 hover:bg-gray-50 font-medium">Sign Up</a>
             {% endif %}
