@@ -7,10 +7,8 @@ while ! python -c "import socket; s=socket.socket(); s.settimeout(2); s.connect(
 done
 echo "PostgreSQL is ready."
 
-# Ensure FLASK_APP is set for CLI commands
 export FLASK_APP=run:app
 
-# Initialize migrations folder if it doesn't exist
 if [ ! -d "migrations" ]; then
     echo "Initializing migrations..."
     flask db init
@@ -20,4 +18,4 @@ echo "Running database migrations..."
 flask db upgrade
 
 echo "Starting gunicorn..."
-exec gunicorn --bind 0.0.0.0:5000 --workers 2 --timeout 300 "run:app"
+exec gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 300 "run:app"
