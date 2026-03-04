@@ -1,18 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Waiting for PostgreSQL..."
-while ! python -c "import socket; s=socket.socket(); s.settimeout(2); s.connect(('db',5432)); s.close()" 2>/dev/null; do
-    sleep 1
-done
-echo "PostgreSQL is ready."
-
 export FLASK_APP=run:app
-
-if [ ! -d "migrations" ]; then
-    echo "Initializing migrations..."
-    flask db init
-fi
 
 echo "Running database migrations..."
 flask db upgrade
