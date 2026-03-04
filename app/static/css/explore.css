@@ -43,7 +43,7 @@
 .explore-hero-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(102,126,234,0.85) 0%, rgba(118,75,162,0.85) 100%);
+    background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.2) 100%);
 }
 
 .explore-hero-content {
