@@ -37,30 +37,6 @@
 
         <!-- Package Grid -->
         <div class="flex-1">
-            <!-- Sort -->
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center space-x-2">
-                    <label class="text-sm text-gray-500">Sort by:</label>
-                    <form method="GET" action="{{ url_for('packages.browse') }}" class="flex items-center space-x-2" id="sort-form">
-                        {% for key, val in request.args.items() if key not in ('sortBy', 'sortOrder', 'page') %}
-                        <input type="hidden" name="{{ key }}" value="{{ val }}">
-                        {% endfor %}
-                        <select name="sortBy" onchange="document.getElementById('sort-form').submit()"
-                            class="px-3 py-1.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                            <option value="createdAt" {{ 'selected' if sort_by == 'createdAt' }}>Newest</option>
-                            <option value="price" {{ 'selected' if sort_by == 'price' }}>Price</option>
-                            <option value="rating" {{ 'selected' if sort_by == 'rating' }}>Rating</option>
-                            <option value="duration" {{ 'selected' if sort_by == 'duration' }}>Duration</option>
-                        </select>
-                        <select name="sortOrder" onchange="document.getElementById('sort-form').submit()"
-                            class="px-3 py-1.5 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                            <option value="desc" {{ 'selected' if sort_order == 'desc' }}>Descending</option>
-                            <option value="asc" {{ 'selected' if sort_order == 'asc' }}>Ascending</option>
-                        </select>
-                    </form>
-                </div>
-            </div>
-
             {% if packages %}
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {% for pkg in packages %}

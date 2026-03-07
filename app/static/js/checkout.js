@@ -1,14 +1,52 @@
-// Checkout page - payment method switching and form submission
+// ===== Stripe Checkout Flow =====
+
+async function startStripeCheckout() {
+    const errorEl = document.getElementById('payment-error');
+    const errorMsg = document.getElementById('payment-error-msg');
+    errorEl.classList.add('hidden');
+
+    const btn = document.getElementById('pay-btn');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner mx-auto"></div><span class="ml-2">Redirecting to Stripe...</span>';
+
+    try {
+        const result = await apiRequest('/api/payments/create-checkout-session', {
+            method: 'POST',
+            body: { bookingId: BOOKING_ID },
+        });
+
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
+        // Redirect to Stripe Checkout
+        if (result.url) {
+            window.location.href = result.url;
+        } else {
+            throw new Error('Failed to create checkout session.');
+        }
+    } catch (err) {
+        errorMsg.textContent = err.message || 'Something went wrong. Please try again.';
+        errorEl.classList.remove('hidden');
+        errorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+        lucide.createIcons();
+    }
+}
+
+
+// ===== Demo Payment Flow (fallback when Stripe is not configured) =====
 
 let selectedMethod = 'card';
 
-// Payment method switching
+// Payment method switching (only runs when demo form is present)
 document.querySelectorAll('.payment-method-btn').forEach(btn => {
     btn.addEventListener('click', function () {
         const method = this.dataset.method;
         selectedMethod = method;
 
-        // Update button styles
         document.querySelectorAll('.payment-method-btn').forEach(b => {
             b.classList.remove('active', 'border-primary-500', 'bg-primary-50');
             b.classList.add('border-gray-200');
@@ -24,14 +62,16 @@ document.querySelectorAll('.payment-method-btn').forEach(btn => {
         const activeLabel = this.querySelector('span');
         if (activeLabel) { activeLabel.classList.remove('text-gray-600'); activeLabel.classList.add('text-primary-700'); }
 
-        // Show/hide forms
-        document.getElementById('card-form').classList.toggle('hidden', method !== 'card');
-        document.getElementById('upi-form').classList.toggle('hidden', method !== 'upi');
-        document.getElementById('netbanking-form').classList.toggle('hidden', method !== 'netbanking');
+        const cardForm = document.getElementById('card-form');
+        const upiForm = document.getElementById('upi-form');
+        const netbankingForm = document.getElementById('netbanking-form');
+        if (cardForm) cardForm.classList.toggle('hidden', method !== 'card');
+        if (upiForm) upiForm.classList.toggle('hidden', method !== 'upi');
+        if (netbankingForm) netbankingForm.classList.toggle('hidden', method !== 'netbanking');
     });
 });
 
-// Card number formatting (add spaces every 4 digits)
+// Card number formatting
 const cardNumberInput = document.getElementById('card-number');
 if (cardNumberInput) {
     cardNumberInput.addEventListener('input', function () {
@@ -45,7 +85,7 @@ if (cardNumberInput) {
     });
 }
 
-// Expiry date formatting (MM/YY)
+// Expiry date formatting
 const expiryInput = document.getElementById('card-expiry');
 if (expiryInput) {
     expiryInput.addEventListener('input', function () {
@@ -57,7 +97,7 @@ if (expiryInput) {
     });
 }
 
-// CVV - only digits
+// CVV
 const cvvInput = document.getElementById('card-cvv');
 if (cvvInput) {
     cvvInput.addEventListener('input', function () {
@@ -71,7 +111,6 @@ function validateForm() {
         const number = document.getElementById('card-number').value.replace(/\s/g, '');
         const expiry = document.getElementById('card-expiry').value;
         const cvv = document.getElementById('card-cvv').value;
-
         if (!name) return 'Please enter the cardholder name.';
         if (number.length < 13) return 'Please enter a valid card number.';
         if (!/^\d{2}\/\d{2}$/.test(expiry)) return 'Please enter a valid expiry date (MM/YY).';
@@ -99,7 +138,6 @@ function hidePaymentError() {
 
 async function submitPayment() {
     hidePaymentError();
-
     const error = validateForm();
     if (error) {
         showPaymentError(error);
@@ -112,7 +150,6 @@ async function submitPayment() {
     btn.innerHTML = '<div class="spinner mx-auto"></div><span class="ml-2">Processing payment...</span>';
 
     try {
-        // Simulate a short delay for realism
         await new Promise(resolve => setTimeout(resolve, 1500));
 
         const result = await apiRequest('/api/payments/process', {
@@ -124,7 +161,6 @@ async function submitPayment() {
         });
 
         if (result.success) {
-            // Show brief success toast before redirecting
             showToast('Payment successful!', 'success');
             setTimeout(() => {
                 window.location.href = SUCCESS_URL;

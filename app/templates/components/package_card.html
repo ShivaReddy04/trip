@@ -3,7 +3,9 @@
     <!-- Image -->
     <div class="relative h-48 bg-gray-200 overflow-hidden">
         {% if pkg.images and pkg.images|length > 0 %}
-        <img src="{{ pkg.images[0].url }}" alt="{{ pkg.images[0].get('alt', pkg.title) }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+        <img src="{{ pkg.images[0].url }}" alt="{{ pkg.images[0].get('alt', pkg.title) }}" loading="lazy"
+            onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&q=80';"
+            class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
         {% else %}
         <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-100 to-accent-100">
             <i data-lucide="image" class="w-12 h-12 text-primary-300"></i>
@@ -39,8 +41,8 @@
 
         <div class="flex items-center justify-between pt-3 border-t border-gray-100">
             <div>
-                <span class="text-lg font-bold text-gray-900">${{ "%.0f"|format(pkg.pricing.basePrice) }}</span>
-                {% if pkg.pricing.perPersonPrice %}<span class="text-sm text-gray-500">/person</span>{% endif %}
+                <span class="text-lg font-bold text-gray-900">&#8377;{{ "%.0f"|format(pkg.pricing.basePrice) }}</span>
+                {% if pkg.pricing.perPersonPrice %}<span class="text-sm text-gray-500"> per person</span>{% endif %}
             </div>
             <a href="{{ url_for('packages.detail', slug=pkg.slug) }}" class="text-sm font-medium text-primary-600 hover:text-primary-700 transition">
                 View Details →

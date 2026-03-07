@@ -11,7 +11,7 @@ function initBookingCalc(basePrice, perPerson) {
         const count = parseInt(this.value) || 1;
         countDisplay.textContent = count;
         const total = perPerson ? basePrice * count : basePrice;
-        subtotal.textContent = '$' + total.toFixed(2);
-        totalPrice.textContent = '$' + total.toFixed(2);
+        subtotal.textContent = '₹' + total.toFixed(2);
+        totalPrice.textContent = '₹' + total.toFixed(2);
     });
 }

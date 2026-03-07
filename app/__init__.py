@@ -39,6 +39,7 @@ def create_app(config_name=None):
         return dict(
             current_user=user,
             google_maps_api_key=app.config.get('GOOGLE_MAPS_API_KEY', ''),
+            stripe_publishable_key=app.config.get('STRIPE_PUBLISHABLE_KEY', ''),
         )
 
     # ⭐ Import models so migrations can detect them

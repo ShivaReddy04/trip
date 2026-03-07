@@ -200,8 +200,8 @@
         <div class="lg:col-span-1">
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-24">
                 <div class="mb-4">
-                    <span class="text-3xl font-bold text-gray-900">${{ "%.0f"|format(package.pricing.basePrice) }}</span>
-                    {% if package.pricing.perPersonPrice %}<span class="text-gray-500">/person</span>{% endif %}
+                    <span class="text-3xl font-bold text-gray-900">&#8377;{{ "%.0f"|format(package.pricing.basePrice) }}</span>
+                    {% if package.pricing.perPersonPrice %}<span class="text-gray-500"> per person</span>{% endif %}
                 </div>
 
                 {% if vendor %}
@@ -247,11 +247,11 @@
                     <div class="mt-4 pt-4 border-t border-gray-100 space-y-2">
                         <div class="flex justify-between text-sm">
                             <span class="text-gray-500">Base price × <span id="count-display">1</span></span>
-                            <span id="subtotal">${{ "%.2f"|format(package.pricing.basePrice) }}</span>
+                            <span id="subtotal">&#8377;{{ "%.2f"|format(package.pricing.basePrice) }}</span>
                         </div>
                         <div class="flex justify-between font-semibold text-lg pt-2 border-t border-gray-100">
                             <span>Total</span>
-                            <span id="total-price">${{ "%.2f"|format(package.pricing.basePrice) }}</span>
+                            <span id="total-price">&#8377;{{ "%.2f"|format(package.pricing.basePrice) }}</span>
                         </div>
                     </div>
 

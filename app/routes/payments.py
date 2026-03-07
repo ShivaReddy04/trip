@@ -1,73 +1,50 @@
 import hmac
 import hashlib
-from flask import Blueprint, request, jsonify, session, current_app
+import json
+import stripe
+from flask import Blueprint, request, jsonify, session, current_app, url_for
 from app.models.booking import find_booking_by_id
-from app.services.payment_service import process_payment
+from app.services.payment_service import (
+    create_checkout_session,
+    handle_checkout_completed,
+    process_payment,
+)
 from app.utils.decorators import login_required
 
 payments_bp = Blueprint('payments', __name__)
 
 
-def verify_stripe_signature(payload, sig_header, secret):
-    """Verify Stripe webhook signature."""
-    if not secret:
-        return False, 'Stripe webhook secret is not configured.'
-    if not sig_header:
-        return False, 'Missing Stripe-Signature header.'
-
-    try:
-        elements = dict(pair.split('=', 1) for pair in sig_header.split(','))
-        timestamp = elements.get('t', '')
-        expected_sig = elements.get('v1', '')
-    except (ValueError, AttributeError):
-        return False, 'Malformed Stripe-Signature header.'
-
-    signed_payload = f'{timestamp}.{payload}'.encode()
-    computed = hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
-
-    if not hmac.compare_digest(computed, expected_sig):
-        return False, 'Signature verification failed.'
-    return True, None
-
-
-def verify_razorpay_signature(payload, sig_header, secret):
-    """Verify Razorpay webhook signature."""
-    if not secret:
-        return False, 'Razorpay webhook secret is not configured.'
-    if not sig_header:
-        return False, 'Missing X-Razorpay-Signature header.'
-
-    computed = hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
-
-    if not hmac.compare_digest(computed, sig_header):
-        return False, 'Signature verification failed.'
-    return True, None
-
-
-@payments_bp.route('/create-intent', methods=['POST'])
+@payments_bp.route('/create-checkout-session', methods=['POST'])
 @login_required
-def create_intent():
+def create_stripe_session():
+    """Create a Stripe Checkout Session and return the URL."""
     data = request.get_json()
     if not data or not data.get('bookingId'):
         return jsonify({'error': 'bookingId is required'}), 400
 
-    booking = find_booking_by_id(data['bookingId'])
-    if not booking:
-        return jsonify({'error': 'Booking not found'}), 404
+    booking_id = data['bookingId']
+    user_id = session['user_id']
 
-    # Demo mode: return a mock payment intent
-    return jsonify({
-        'demo': True,
-        'message': 'Payment processing is a demo feature.',
-        'bookingId': data['bookingId'],
-        'amount': booking.total_amount,
-    })
+    success_url = request.host_url.rstrip('/') + url_for(
+        'bookings.payment_success', booking_id=booking_id
+    )
+    cancel_url = request.host_url.rstrip('/') + url_for(
+        'bookings.checkout', booking_id=booking_id
+    )
+
+    result, error = create_checkout_session(
+        booking_id, user_id, success_url, cancel_url
+    )
+    if error:
+        return jsonify({'error': error}), 400
+
+    return jsonify(result)
 
 
 @payments_bp.route('/process', methods=['POST'])
 @login_required
 def process():
-    """Process a demo payment for a booking."""
+    """Fallback demo payment when Stripe is not configured."""
     data = request.get_json()
     if not data or not data.get('bookingId'):
         return jsonify({'error': 'bookingId is required'}), 400
@@ -86,33 +63,26 @@ def process():
 
 @payments_bp.route('/webhook/stripe', methods=['POST'])
 def stripe_webhook():
-    secret = current_app.config['STRIPE_WEBHOOK_SECRET']
-    ok, error = verify_stripe_signature(
-        request.get_data(as_text=True),
-        request.headers.get('Stripe-Signature', ''),
-        secret,
-    )
-    if not ok:
-        current_app.logger.warning('Stripe webhook rejected: %s', error)
-        return jsonify({'error': error}), 400
+    """Handle Stripe webhook events."""
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature', '')
+    webhook_secret = current_app.config.get('STRIPE_WEBHOOK_SECRET', '')
 
-    # TODO: process the verified event
-    return jsonify({'received': True})
+    if not webhook_secret:
+        current_app.logger.warning('Stripe webhook secret not configured')
+        return jsonify({'error': 'Webhook secret not configured'}), 400
 
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+    except ValueError:
+        return jsonify({'error': 'Invalid payload'}), 400
+    except stripe.error.SignatureVerificationError:
+        return jsonify({'error': 'Invalid signature'}), 400
 
-@payments_bp.route('/webhook/razorpay', methods=['POST'])
-def razorpay_webhook():
-    secret = current_app.config['RAZORPAY_WEBHOOK_SECRET']
-    ok, error = verify_razorpay_signature(
-        request.get_data(as_text=True),
-        request.headers.get('X-Razorpay-Signature', ''),
-        secret,
-    )
-    if not ok:
-        current_app.logger.warning('Razorpay webhook rejected: %s', error)
-        return jsonify({'error': error}), 400
+    if event['type'] == 'checkout.session.completed':
+        session_obj = event['data']['object']
+        handle_checkout_completed(session_obj)
 
-    # TODO: process the verified event
     return jsonify({'received': True})
 
 

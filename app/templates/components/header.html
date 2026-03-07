@@ -52,10 +52,10 @@
 
                 {% elif current_user %}
                     {# ── Regular User Navigation ── #}
-                    <a href="{{ url_for('maps.home_page') }}" class="text-gray-600 hover:text-primary-600 transition">Home</a>
-                    <a href="{{ url_for('packages.browse') }}" class="text-gray-600 hover:text-primary-600 transition">Packages</a>
-                    <a href="{{ url_for('ai.planner') }}" class="text-gray-600 hover:text-primary-600 transition">AI Planner</a>
-                    <a href="{{ url_for('bookings.my_bookings') }}" class="text-gray-600 hover:text-primary-600 transition">My Bookings</a>
+                    <a href="{{ url_for('maps.home_page') }}" class="pb-1 border-b-2 transition {{ 'text-primary-600 border-primary-500 font-semibold' if request.endpoint == 'maps.home_page' else 'text-gray-600 border-transparent hover:text-primary-600' }}">Home</a>
+                    <a href="{{ url_for('packages.browse') }}" class="pb-1 border-b-2 transition {{ 'text-primary-600 border-primary-500 font-semibold' if request.endpoint and request.endpoint.startswith('packages.') else 'text-gray-600 border-transparent hover:text-primary-600' }}">Packages</a>
+                    <a href="{{ url_for('ai.planner') }}" class="pb-1 border-b-2 transition {{ 'text-primary-600 border-primary-500 font-semibold' if request.endpoint == 'ai.planner' else 'text-gray-600 border-transparent hover:text-primary-600' }}">AI Planner</a>
+                    <a href="{{ url_for('bookings.my_bookings') }}" class="pb-1 border-b-2 transition {{ 'text-primary-600 border-primary-500 font-semibold' if request.endpoint and request.endpoint.startswith('bookings.') else 'text-gray-600 border-transparent hover:text-primary-600' }}">My Bookings</a>
 
                     <!-- User dropdown -->
                     <div class="relative" x-data="{ open: false }">
@@ -87,8 +87,8 @@
                     </div>
                 {% else %}
                     {# ── Guest Navigation ── #}
-                    <a href="{{ url_for('packages.browse') }}" class="text-gray-600 hover:text-primary-600 transition">Packages</a>
-                    <a href="{{ url_for('ai.planner') }}" class="text-gray-600 hover:text-primary-600 transition">AI Planner</a>
+                    <a href="{{ url_for('packages.browse') }}" class="pb-1 border-b-2 transition {{ 'text-primary-600 border-primary-500 font-semibold' if request.endpoint and request.endpoint.startswith('packages.') else 'text-gray-600 border-transparent hover:text-primary-600' }}">Packages</a>
+                    <a href="{{ url_for('ai.planner') }}" class="pb-1 border-b-2 transition {{ 'text-primary-600 border-primary-500 font-semibold' if request.endpoint == 'ai.planner' else 'text-gray-600 border-transparent hover:text-primary-600' }}">AI Planner</a>
                     <a href="{{ url_for('auth.login') }}" class="text-gray-600 hover:text-primary-600 transition">Login</a>
                     <a href="{{ url_for('auth.register') }}" class="bg-gradient-to-r from-primary-500 to-accent-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition">Sign Up</a>
                 {% endif %}
@@ -120,10 +120,10 @@
                 </form>
             {% elif current_user %}
                 {# ── User Mobile Nav ── #}
-                <a href="{{ url_for('maps.home_page') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Home</a>
-                <a href="{{ url_for('packages.browse') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Packages</a>
-                <a href="{{ url_for('ai.planner') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">AI Planner</a>
-                <a href="{{ url_for('bookings.my_bookings') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">My Bookings</a>
+                <a href="{{ url_for('maps.home_page') }}" class="block px-3 py-2 rounded-lg {{ 'text-primary-600 bg-primary-50 font-semibold' if request.endpoint == 'maps.home_page' else 'text-gray-600 hover:bg-gray-50' }}">Home</a>
+                <a href="{{ url_for('packages.browse') }}" class="block px-3 py-2 rounded-lg {{ 'text-primary-600 bg-primary-50 font-semibold' if request.endpoint and request.endpoint.startswith('packages.') else 'text-gray-600 hover:bg-gray-50' }}">Packages</a>
+                <a href="{{ url_for('ai.planner') }}" class="block px-3 py-2 rounded-lg {{ 'text-primary-600 bg-primary-50 font-semibold' if request.endpoint == 'ai.planner' else 'text-gray-600 hover:bg-gray-50' }}">AI Planner</a>
+                <a href="{{ url_for('bookings.my_bookings') }}" class="block px-3 py-2 rounded-lg {{ 'text-primary-600 bg-primary-50 font-semibold' if request.endpoint and request.endpoint.startswith('bookings.') else 'text-gray-600 hover:bg-gray-50' }}">My Bookings</a>
                 <a href="{{ url_for('users.profile') }}" class="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50">Profile</a>
                 <form action="{{ url_for('auth.logout') }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

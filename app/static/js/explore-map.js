@@ -433,7 +433,8 @@
                         ${places.map((p, i) => `
                             <div class="explore-card" data-id="${p.id}" style="animation-delay:${i * 0.05}s">
                                 <div class="explore-card-img-wrap">
-                                    <img src="${p.hero}" alt="${p.name}" class="explore-card-img" loading="lazy" />
+                                    <img src="${p.hero}" alt="${p.name}" class="explore-card-img" loading="lazy"
+                                         onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&q=80';" />
                                     <span class="explore-card-badge ${badgeClass(p.category)}">${p.category}</span>
                                 </div>
                                 <div class="explore-card-body">
@@ -486,7 +487,8 @@
             <div class="explore-detail-view detail-enter">
                 <!-- Hero -->
                 <div class="detail-hero">
-                    <img src="${p.hero}" alt="${p.name}" class="detail-hero-img" />
+                    <img src="${p.hero}" alt="${p.name}" class="detail-hero-img"
+                         onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&q=80';" />
                     <div class="detail-hero-overlay"></div>
                     <button class="detail-back-btn" id="detail-back">
                         <i data-lucide="arrow-left" class="w-5 h-5"></i>
@@ -560,7 +562,8 @@
                         </h2>
                         <div class="detail-gallery">
                             <div class="detail-gallery-main">
-                                <img src="${p.images[galleryIndex]}" alt="${p.name}" id="gallery-main-img" />
+                                <img src="${p.images[galleryIndex]}" alt="${p.name}" id="gallery-main-img"
+                                     onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&q=80';" />
                                 <button class="gallery-nav gallery-prev" id="gallery-prev">
                                     <i data-lucide="chevron-left" class="w-5 h-5"></i>
                                 </button>
@@ -571,7 +574,8 @@
                             <div class="detail-gallery-thumbs">
                                 ${p.images.map((img, i) => `
                                     <img src="${img}" alt="Photo ${i+1}" data-idx="${i}"
-                                         class="detail-gallery-thumb ${i === galleryIndex ? 'active' : ''}" />
+                                         class="detail-gallery-thumb ${i === galleryIndex ? 'active' : ''}"
+                                         onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&q=80';" />
                                 `).join('')}
                             </div>
                         </div>
